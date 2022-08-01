@@ -1,0 +1,6 @@
+[submodule "ox_asir_client"]
+	path = ox_asir_client
+	url = git@github.com:bombrary/ox_asir_client.git
+[submodule "hgm-system-estimation"]
+	path = hgm-system-estimation
+	url = git@github.com:bombrary/hgm-system-estimation.git

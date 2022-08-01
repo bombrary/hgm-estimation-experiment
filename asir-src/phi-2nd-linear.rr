@@ -1,0 +1,80 @@
+load("yang.rr")$
+load("nk_restriction.rr")$
+load("os_muldif.rr")$
+load("util.rr")$
+
+Var_ob = 1/100$
+C0 = 1$
+C1 = 1/2$
+C2 = 1/3$
+D0 = 1$
+D1 = 2$
+
+S = D0 + D1*xp;
+DifS = diff(S, xp);
+T = C0 + C1*xp + (C2/2)*xp^2;
+DifT = diff(T, xp);
+
+/* name rule */
+/*   xp = x^{-1} */
+/* lamp = \Lambda^{-1} */
+/*  mup = \mu^{-1} */
+
+/* gauss assumption for previous state*/
+I1 = [dxp + lamp * (xp - mup),
+      dmup - lamp * (xp - mup),
+      2*lamp*dlamp - 1 + lamp * (xp - mup)^2]$
+
+/* observation equation */
+I2 = [dy + (y - x) / Var_ob,
+      dx - (y - x) / Var_ob]$
+
+/* state equation */
+I3 = [ dx +   S * (x - T),
+      2*S*dxp + S*DifS*(x-T)^2 - 2*DifT*S^2*(x-T) - DifS]$
+
+I3 = map(subst, I3,
+         c, C,
+         d, D)$
+
+I23 = util.ann_mul(I2, I3, [x, y], [x, xp]);
+I123 = util.ann_mul(I1, I23, [xp, lamp, mup], [x, xp, y]);
+
+I_phi0 = nk_restriction.integration_ideal(I123, [x, xp, y, mup, lamp], [dx, dxp, dy, dmup, dlamp], [1, 1, 0, 0, 0]);
+
+I123x = util.ann_mul([x*dx - 1], I123, [x], [x, xp, y, mup, lamp]);
+
+I_phi1 = nk_restriction.integration_ideal(I123x, [x, xp, y, mup, lamp], [dx, dxp, dy, dmup, dlamp], [1, 1, 0, 0, 0]);
+
+I123xx = util.ann_mul([x^2*dx - 1], I123, [x], [x, xp, y, mup, lamp]);
+I_phi2 = nk_restriction.integration_ideal(I123xx, [x, xp, y, mup, lamp], [dx, dxp, dy, dmup, dlamp], [1, 1, 0, 0, 0]);
+
+
+
+yang.define_ring(["partial", [y, mup, lamp]]);
+
+
+def save_Pfs_as_python(Filename, Names, Pfs) {
+  remove_file(Filename);
+  output(Filename);
+  print("import numpy as np");
+  print("from typing import Final");
+  print("Gamma: Final = " + rtostr(Gamma));
+  print("Sigma: Final = " + rtostr(Sigma));
+  print("Var_ob: Final = " + rtostr(Var_ob));
+  for (I = 0; I < length(Pfs); I++) {
+    print(util.pf_as_python_func_allnp(Names[I], Pfs[I]));
+  }
+  output();
+}
+
+Pf0s = util.pf_from_ideal(I_phi0)$
+Pf1s = util.pf_from_ideal(I_phi1)$
+Pf2s = util.pf_from_ideal(I_phi2)$
+
+
+/*save_Pfs_as_python( "../models/ou_linear/pfaffians.py"
+                   , ["phi0", "phi1", "phi2"]
+                   , [ Pf0s, Pf1s, Pf2s ])$*/
+
+end$

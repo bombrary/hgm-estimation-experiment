@@ -1,0 +1,86 @@
+module util;
+
+localf dvar, ann_mul, gen_obs_eq;
+localf print_pf_as_python_func;
+localf pf_from_ideal;
+localf pf_as_python_func, pf_as_python_func_allnp;
+localf save_Pfs_as_python;
+
+def dvar(X) {
+  return strtov("d" + rtostr(X));
+}
+
+def ann_mul(I, J, Ivars, Jvars) {
+  Ietc = map(dvar, base_set_minus(Jvars, Ivars));
+  Jetc = map(dvar, base_set_minus(Ivars, Jvars));
+  Vars = base_set_union(Ivars, Jvars);
+  DVars = map(dvar, Vars);
+  
+  return nk_restriction.ann_mul(
+      append(I, Ietc),
+      append(J, Jetc),
+      Vars, DVars
+  );
+}
+
+def gen_obs_eq(OE) {
+  Iv = [dv + v];
+  Iy_x = map(os_md.transpdo, Iv, [[v, dv]], [[OE, dx/diff(OE, x)]])$
+  Iy_x = map(red, Iy_x)$
+  Iy_x = map(nm, Iy_x)$
+  Ix_y = map(os_md.transpdo, Iv, [[v, dv]], [[OE, dy/diff(OE, y)]])$
+  Ix_y = map(red, Ix_y)$
+  Ix_y = map(nm, Ix_y)$
+  return append(Iy_x, Ix_y);
+}
+
+
+def pf_as_python_func(Fname, Pfs) {
+  L = [];
+  for (I = 0; I < length(Pfs); I++) {
+    S = "np.array(" + rtostr(matrix_matrix_to_list(Pfs[I])) + ")";
+    L = cons(S, L);
+  }
+  L = reverse(L);
+
+  return "def " + Fname + "(z):\n" +
+         "    y, mup, lamp = z\n" +
+         "    return " + os_md.str_subst(rtostr(L), "^", "**") + "\n";
+}
+
+
+def pf_as_python_func_allnp(Fname, Pfs) {
+  L = vtol(map(matrix_matrix_to_list, Pfs));
+
+  return "def " + Fname + "(z):\n" +
+         "    y, mup, lamp = z\n" +
+         "    return np.array(" + os_md.str_subst(rtostr(L), "^", "**") + ")\n";
+}
+
+
+def pf_from_ideal(I) {
+  G = yang.gr(I);
+  S = yang.stdmon(G);
+  print(S);
+  return yang.pf(S, G);
+}
+
+
+def save_Pfs_as_python(Filename, Names, Pfs) {
+  remove_file(Filename);
+  output(Filename);
+  print("import numpy as np");
+  print("from typing import Final");
+  print("Gamma: Final = " + rtostr(Gamma));
+  print("Sigma: Final = " + rtostr(Sigma));
+  print("Var_ob: Final = " + rtostr(Var_ob));
+  for (I = 0; I < length(Pfs); I++) {
+    print(pf_as_python_func_allnp(Names[I], Pfs[I]));
+  }
+  output();
+}
+
+
+endmodule;
+
+end;
