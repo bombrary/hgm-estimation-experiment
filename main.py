@@ -9,7 +9,7 @@ def plot_estimate(ax: plt.Axes, ts, mus, lams):
 
 # %%
 
-from ox_asir.ox_client import ClientIPv4
+from ox_asir.client import ClientPipe
 from hgm_estimation.models import linear
 from hgm_estimation.models.linear import phi as linear_phi
 from hgm_estimation.models.linear import kalman as linear_kalman
@@ -22,8 +22,10 @@ def pfs_phi(i, zs):
     client.execute_string(f'subst(Pfs[{i}], y, {y}, mup, {mup}, lamp, {lamp});')
     return np.array(client.pop_cmo())
 
-# client = ClientPipe()
-client = ClientIPv4("172.17.0.2", 1300)
+client = ClientPipe(
+        openxm_path="/home/bombrary/openxm/OpenXM/bin/openxm",
+        args = ["openxm", "ox_asir", "-nomessage"]
+        )
 # client.send_shutdown()
 
 # %%
