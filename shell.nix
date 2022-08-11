@@ -11,6 +11,7 @@ let
     matplotlib
     ipython
     tqdm
+    pytest
     (python-package-ox-asir p)
     (python-package-hgm p)
   ]);
