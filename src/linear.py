@@ -1,6 +1,6 @@
-from hgm_estimation.models import linear
-from hgm_estimation.models.linear import phi
-from hgm_estimation.models.linear import kalman
+from models import linear
+from models.linear import phi
+from models.linear import kalman
 from hgm_estimation import estimation
 from utils import pfs_phi
 from matplotlib import pyplot as plt
