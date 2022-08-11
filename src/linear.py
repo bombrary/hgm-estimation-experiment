@@ -1,4 +1,5 @@
 from models import linear
+from models.linear.estimation import run_naive
 from models.linear import phi
 from models.linear import kalman
 from hgm_estimation import estimation
@@ -33,6 +34,7 @@ result = estimation.run( y0, mu0, lam0, ys
 
 result_kalman = kalman.estimate(1.0, 10.0, ys, model=model)
 
+mus_naive, lams_naive = run_naive(y0, mu0, lam0, ys, model=model)
 
 fig: plt.Figure = plt.figure()
 ax: plt.Axes = fig.add_subplot()
@@ -43,6 +45,7 @@ ax.plot(range(0, n), xs, label="state")
 ax.plot(range(0, n), ys, label="observe")
 ax.plot(range(0, len(result.mus)), result.mus, label="estimate-hgm")
 ax.plot(range(0, len(result_kalman[0,1:])), result_kalman[0, 1:], label="estimate-kalman")
+ax.plot(range(1, len(mus_naive) + 1), mus_naive, label="estimate-naive")
 ax.set_xlabel("time")
 ax.set_title("state var=0.1, observe var=10")
 
