@@ -1,0 +1,28 @@
+load("nk_restriction.rr")$
+load("yang.rr")$
+load("os_muldif.rr")$
+
+def pf(I, Vars) {
+  yang.define_ring(["partial", Vars]);
+  G = yang.gr(I);
+  S = yang.stdmon(G);
+  print(S);
+  return yang.pf(S, G);
+}
+
+
+Iw = [dw + w]; 
+SE = [xx - 4/5*x]; 
+
+Ixx_x = map(os_md.transpdo, Iw, [[w, dw]], [[SE[0], dx/diff(SE[0], x)]]);
+Ixx_x = map(red, Ixx_x)$
+Ixx_x = map(nm, Ixx_x);
+Ix_xx = map(os_md.transpdo, Iw, [[w, dw]], [[SE[0], dxx/diff(SE[0], xx)]]);
+Ix_xx = map(red, Ix_xx)$
+Ix_xx = map(nm, Ix_xx);
+
+Ist = append(Ixx_x, Ix_xx)$
+
+Pf = pf(Ist, [xx, x])$
+
+end$
