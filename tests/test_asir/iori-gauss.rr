@@ -1,0 +1,21 @@
+load("yang.rr")$
+load("os_muldif.rr")$
+
+def pf(I, Vars) {
+  yang.define_ring(["partial", Vars]);
+  G = yang.gr(I);
+  S = yang.stdmon(G);
+  print(S);
+  return yang.pf(S, G);
+}
+
+
+Ii = [sig*dxi + (xi - mu)]$
+Imu = [sig*dmu - (x - mu)]$
+Isig = [2*sig^2*dsig + sig - (x - mu)^2]$
+
+Igauss = append(Imu, append(Isig, subst(Ii, xi, x, dxi, dx)))$
+
+Pf = pf(Igauss, [x, mu, sig])$
+
+end$
