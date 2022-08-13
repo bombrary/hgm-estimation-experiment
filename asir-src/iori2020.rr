@@ -63,14 +63,16 @@ I1 = nk_restriction.integration_ideal(Ioj1, [x, mu, sig, y], [dx, dmu, dsig, dy]
 I2 = nk_restriction.integration_ideal(Ioj2, [x, mu, sig, y], [dx, dmu, dsig, dy], [1,0,0,0]);
 
 /* [dsig*dy,dsig*dmu,dsig^2,dy,dmu,dsig,1] */
-Pf0 = pf(I0, [y, mu, sig])$
+Pf0 = matrix_matrix_to_list(pf(I0, [y, mu, sig]))$
 /* [dsig*dy,dsig*dmu,dsig^2,dy,dmu,dsig,1] */
-Pf1 = pf(I1, [y, mu, sig])$
+Pf1 = matrix_matrix_to_list(pf(I1, [y, mu, sig]))$
 /* [dsig*dy,dsig*dmu,dsig^2,dy,dmu,dsig,1] */
-Pf2 = pf(I2, [y, mu, sig])$
+Pf2 = matrix_matrix_to_list(pf(I2, [y, mu, sig]))$
 
-bsave(Pf0, "asir-src/pf0-iori2020.bin");
-bsave(Pf1, "asir-src/pf1-iori2020.bin");
-bsave(Pf2, "asir-src/pf2-iori2020.bin");
+/*
+ bsave(Pf0, "asir-src/pf0-iori2020.bin");
+ bsave(Pf1, "asir-src/pf1-iori2020.bin");
+ bsave(Pf2, "asir-src/pf2-iori2020.bin");
+*/
 
 end$
