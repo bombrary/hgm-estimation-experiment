@@ -6,14 +6,18 @@ from scipy import stats, integrate
 from multiprocessing import Pool
 from tqdm import tqdm
 from matplotlib import pyplot as plt
+from iori_initial import v_phis_cache
+
+
 
 def pfs_phi(client, i, zs):
     y, mu, sig = zs
     client.execute_string(f'subst(Pf{i}, y, {y}, mu, {mu}, sig, {sig});')
     return np.array(client.pop_cmo())
 
+
 for i in range(0, 3):
-     client.execute_string(f'Pf{i} = matrix_matrix_to_list(bload("asir-src/pf{i}-iori2021.bin"));')
+     client.execute_string(f'Pf{i} = bload("asir-src/pf{i}-iori2020.bin");')
 
 
 def realize(x0: float, n: int):
@@ -35,19 +39,25 @@ def realize(x0: float, n: int):
     return xs, ys
 
 
-xs, ys = realize(10, 100)
-
-
-def estimate(ys, z0, v_phi00, v_phi10, v_phi20):
-
+def estimate(ys):
     # y = z0[0]
-    mu = z0[1]
-    sig = z0[2]
+    mu = 0.01
+    sig = 1
 
     mus = []
     sigs = []
-    for y in tqdm(ys):
+    pbar = tqdm(ys)
+    for y in pbar:
+
         z1 = np.array([y, mu, sig])
+        
+        y0 = 0.01 if y > 0 else -0.01
+        mu0 = 0.01 if mu > 0 else -0.01
+        z0 = np.array([y0, mu0, 1.0])
+
+        # tqdm.write(f'{z0} -> {z1}')
+
+        v_phi00, v_phi10, v_phi20 = v_phis_cache(*z0)
         r0 = hgm.solve(z0, z1, v_phi00, lambda zs: pfs_phi(client, 0, zs))
         r1 = hgm.solve(z0, z1, v_phi10, lambda zs: pfs_phi(client, 1, zs))
         r2 = hgm.solve(z0, z1, v_phi20, lambda zs: pfs_phi(client, 2, zs))
@@ -56,6 +66,10 @@ def estimate(ys, z0, v_phi00, v_phi10, v_phi20):
         v_phi1 = r1.y[:, -1]
         v_phi2 = r2.y[:, -1]
 
+        # tqdm.write(f'v_phi0 = {list(v_phi0)}')
+        # tqdm.write(f'v_phi1 = {list(v_phi1)}')
+        # tqdm.write(f'v_phi2 = {list(v_phi2)}')
+
         mu = v_phi1[-1] / v_phi0[-1]
         sig = v_phi2[-1] / v_phi0[-1] - mu**2
 
@@ -63,6 +77,10 @@ def estimate(ys, z0, v_phi00, v_phi10, v_phi20):
         sigs.append(sig)
 
     return mus, sigs
+
+
+def phi_wrapper(fun, y, mu, sig):
+    return fun(y, mu, sig)
 
 
 def estimate_naive(ys, z0):
@@ -74,9 +92,15 @@ def estimate_naive(ys, z0):
     mus = []
     sigs = []
     for y in tqdm(ys):
-        p0 = phi0(y, mu, sig)
-        p1 = phi1(y, mu, sig)
-        p2 = phi2(y, mu, sig)
+        with Pool(processes=3) as p:
+            args = [(phi0, y, mu, sig)
+                   ,(phi1, y, mu, sig)
+                   ,(phi2, y, mu, sig)
+                   ]
+            p0, p1, p2 = p.starmap(phi_wrapper, args)
+        tqdm.write(f'p0 = {p0}')
+        tqdm.write(f'p1 = {p1}')
+        tqdm.write(f'p2 = {p2}')
 
         mu = p1 / p0
         sig = p2 / p0 - mu**2
@@ -139,7 +163,7 @@ def v_phi(fun, y, mu, sig, ord):
         case [0, 1, 0]:
             return derivative1(lambda      mu: fun(y, mu, sig),        mu, 1)
         case [0, 0, 1]:
-            return derivative1(lambda     sig: fun(y, mu, sig),        mu, 1)
+            return derivative1(lambda     sig: fun(y, mu, sig),       sig, 1)
         case [0, 0, 0]:
             return fun(y, mu, sig)
         case _:
@@ -164,15 +188,20 @@ def v_phis(y, mu, sig):
 y0 = 0.01
 mu0 = 0.01
 sig0 = 1.0
-v_phi00, v_phi10, v_phi20 = v_phis(y0, mu0, sig0)
+# v_phi00, v_phi10, v_phi20 = v_phis(y0, mu0, sig0)
+v_phi00, v_phi10, v_phi20 = v_phis_cache(y0, mu0, sig0)
 
-result = estimate(ys[:20], np.array([y0, mu0, sig0]), np.array(v_phi00), np.array(v_phi10), np.array(v_phi20))
+xs, ys = realize(10, 100)
+result = estimate(ys)
 
-result = estimate_naive(ys[:20], np.array([y0, mu0, sig0]))
+# result_naive = estimate_naive(ys, np.array([y0, mu0, sig0]))
 
+client.send_shutdown()
 
 fig = plt.figure()
 ax = fig.add_subplot()
 ax.plot(range(len(xs)), xs)
 ax.plot(range(len(result[0])), result[0])
+# ax.plot(range(len(result_naive[0])), result_naive[0])
 fig.show()
+plt.show()
