@@ -280,6 +280,7 @@ def _test_phi_internal(client, z0, z1, val0, val1_desired):
 
     val0 = np.array(val0)
     val1_actual = hgm.solve(z0, z1, val0, lambda zs: fun(*zs)).y[:, -1]
+    val1_desired = np.array(val1_desired)
 
     assert pytest.approx(val1_actual, abs=0.01) == val1_desired
         
@@ -361,5 +362,33 @@ def test_phi2(client):
                    , 0.93925337
                    , 0.17417929
                    , 1.89181311]
+
+    _test_phi_internal(client, z0, z1, val0, val1_desired)
+
+
+def test_phi0_singular_locus(client):
+    # mu=0 is singular locus
+    z0 = np.array([0.01, -0.01, 1.0])
+    z1 = np.array([ 1, 0.001, 1])
+
+    client.execute_string('Pf=bload("asir-src/pf0-iori2020.bin");')
+
+    val0 = v_phis(phi0, *z0)
+    val0 = [ -2.26946961e-04
+           , -1.82199367e-04
+           , 3.10209292e-03
+           , -8.15620917e-05
+           , 1.12648231e-03
+           , -4.11481246e-04
+           , 2.93652370e-01]
+
+    val1_desired = v_phis(phi0, *z1)
+    val1_desired=[ -0.00063284
+                 , -0.00710085
+                 , -0.00049771
+                 , -0.12877946
+                 , 0.04102894
+                 , -0.00025141
+                 , 0.11023361]
 
     _test_phi_internal(client, z0, z1, val0, val1_desired)
