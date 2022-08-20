@@ -9,19 +9,22 @@ def pf(I, Vars) {
   return yang.pf(S, G);
 }
 
-Iv = [dv + v]$
+def gen_pfaffian(Var_ob) {
+  Iv = [dv + v/Var_ob]$
 
-OE = [y - 2*x/(1+x^2)]$ 
+  OE = [y - 2*x/(1+x^2)]$ 
 
-Iy_x = map(os_md.transpdo, Iv, [[v, dv]], [[OE[0], dx/diff(OE[0], x)]])$
-Iy_x = map(red, Iy_x)$
-Iy_x = map(nm, Iy_x)$
-Ix_y = map(os_md.transpdo, Iv, [[v, dv]], [[OE[0], dy/diff(OE[0], y)]])$
-Ix_y = map(red, Ix_y)$
-Ix_y = map(nm, Ix_y)$
+  Iy_x = map(os_md.transpdo, Iv, [[v, dv]], [[OE[0], dx/diff(OE[0], x)]])$
+  Iy_x = map(red, Iy_x)$
+  Iy_x = map(nm, Iy_x)$
+  Ix_y = map(os_md.transpdo, Iv, [[v, dv]], [[OE[0], dy/diff(OE[0], y)]])$
+  Ix_y = map(red, Ix_y)$
+  Ix_y = map(nm, Ix_y)$
 
-Iobs = append(Iy_x, Ix_y)$
+  Iobs = append(Iy_x, Ix_y)$
 
-Pf = pf(Iobs, [x, y])$
+  return pf(Iobs, [x, y])$
+}
+
 
 end$

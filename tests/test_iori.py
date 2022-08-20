@@ -4,43 +4,64 @@ from scipy import integrate, stats
 import numpy as np
 from multiprocessing import Pool
 import pytest
-from src.models.iori.phi import phi0, p_obs, p_st, p_gauss, p_mul, v_phi
+from src.models.linear_iori.phi import phi0, p_obs, p_st, p_gauss, p_mul, v_phi, v_phi2
+from src.models.linear import Model as LinearModel
+from fractions import Fraction
 
 
 
+def Model(k, var_st, var_ob):
+    return LinearModel(k, var_st, 1, var_ob)
 
-@pytest.mark.parametrize(('z0', 'z1'), [
-    ([0.01, 0.02], [2, 1]),
-    ([0.01, 0.02], [1, 2]),
+
+@pytest.mark.parametrize(('model', 'z0', 'z1'), [
+    (Model(1, 1, 1), [0.01, 0.02], [2, 1]),
+    (Model(1, 1, 1), [0.01, 0.02], [1, 2]),
+    (Model(1, 1, 0.1), [0.01, 0.02], [1, 2]),
+    (Model(1, 1, 0.1), [0.01, 0.02], [2, 1]),
+    (Model(1, 1, 10), [0.01, 0.02], [1, 2]),
+    (Model(1, 1, 10), [0.01, 0.02], [2, 1]),
 ])
-def test_obs(client, z0, z1):
+def test_obs(client, model, z0, z1):
     client.load("tests/test_asir/iori-obs.rr");
+    client.execute_string(f"Pf = gen_pfaffian({Fraction(model.var_ob)});")
 
     def fun(x, y):
         client.execute_string(f"matrix_matrix_to_list(subst(Pf, x, {x}, y, {y}));")
         return np.array(client.pop_cmo())
 
-    val0 = p_obs(*z0)
+    p = lambda x, y: p_obs(x, y, model)
+
+    val0 = p(*z0)
     val1_actual = hgm.solve(z0, z1, [val0], lambda zs: fun(*zs)).y[:, -1][0]
-    val1_desired = p_obs(*z1)
+    val1_desired = p(*z1)
 
     assert pytest.approx(val1_actual, abs=0.01) == val1_desired
 
 
-@pytest.mark.parametrize(('z0', 'z1'), [
-    ([0.01, 0.02], [2, 1]),
-    ([0.01, 0.02], [1, 2]),
+@pytest.mark.parametrize(('model', 'z0', 'z1'), [
+    (Model(1, 1, 1), [0.01, 0.02], [1, 2]),
+    (Model(1, 1, 1), [0.01, 0.02], [2, 1]),
+    (Model(1, 0.1, 1), [0.01, 0.02], [1, 2]),
+    (Model(1, 0.1, 1), [0.01, 0.02], [2, 1]),
+    (Model(1, 10, 1), [0.01, 0.02], [1, 2]),
+    (Model(1, 10, 1), [0.01, 0.02], [2, 1]),
+    (Model(4/5, 10, 1), [0.01, 0.02], [1, 2]),
+    (Model(4/5, 10, 1), [0.01, 0.02], [2, 1]),
 ])
-def test_st(client, z0, z1):
+def test_st(client, model, z0, z1):
     client.load("tests/test_asir/iori-st.rr");
+    client.execute_string(f"Pf = gen_pfaffian({Fraction(model.k)}, {Fraction(model.var_st)});")
 
     def fun(xx, x):
         client.execute_string(f"matrix_matrix_to_list(subst(Pf, xx, {xx}, x, {x}));")
         return np.array(client.pop_cmo())
 
-    val0 = p_st(*z0)
+    p = lambda xx, x: p_st(xx, x, model)
+
+    val0 = p(*z0)
     val1_actual = hgm.solve(z0, z1, [val0], lambda zs: fun(*zs)).y[:, -1][0]
-    val1_desired = p_st(*z1)
+    val1_desired = p(*z1)
 
     assert pytest.approx(val1_actual, abs=0.01) == val1_desired
 
@@ -63,20 +84,22 @@ def test_gauss(client, z0, z1):
     assert pytest.approx(val1_actual, abs=0.01) == val1_desired
 
 
-@pytest.mark.parametrize(('z0', 'z1'), [
-    ([0.01, 0.01, 0.02, 1.0], [1, 2, 1, 4]),
-    ([0.01, 0.01, 0.02, 1.0], [1, 3, 1, 4]),
-    ([0.01, 0.01, 0.02, 1.0], [1, 1, 2, 4]),
+@pytest.mark.parametrize(('model', 'z0', 'z1'), [
+    (Model(1.0, 1.0, 1.0), [0.01, 0.01, 0.02, 0.01], [1, 2, 3, 4]),
+    (Model(0.1, 1.0, 1.0), [0.01, 0.01, 0.02, 0.01], [1, 2, 3, 4]),
+    (Model(1, 0.1, 1.0), [0.01, 0.01, 0.02, 0.01], [1, 2, 3, 4]),
+    (Model(1, 1, 0.1), [0.01, 0.01, 0.02, 0.01], [1, 2, 3, 4]),
 ])
-def test_mul_gauss_st(client, z0, z1):
-    client.load("tests/test_asir/iori-mul.rr");
+def test_mul_gauss_st(client, model, z0, z1):
+    client.load("tests/test_asir/iori-mul1.rr");
+    client.execute_string(f'Pf = gen_pfaffian({Fraction(model.k)}, {Fraction(model.var_st)}, {Fraction(model.var_ob)});');
 
     def fun(xx, x, mu, sig):
-        client.execute_string(f"subst(Pf1, xx, {xx}, x, {x}, mu, {mu}, sig, {sig});")
+        client.execute_string(f"subst(Pf, xx, {xx}, x, {x}, mu, {mu}, sig, {sig});")
         return np.array(client.pop_cmo())
 
     def p(xx, x, mu, sig):
-        return p_gauss(x, mu, sig) * p_st(xx, x)
+        return p_gauss(x, mu, sig) * p_st(xx, x, model)
 
 
     val0 = p(*z0)
@@ -86,18 +109,21 @@ def test_mul_gauss_st(client, z0, z1):
     assert pytest.approx(val1_actual, abs=0.01) == val1_desired
 
 
-@pytest.mark.parametrize(('z0', 'z1'), [
-    ([0.02, 0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4, 5]),
-    ([0.02, 0.01, 0.01, 0.02, 1.0], [5, 4, 3, 2, 1]),
+@pytest.mark.parametrize(('model', 'z0', 'z1'), [
+    (Model(1.0, 1.0, 1.0), [0.02, 0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4, 5]),
+    (Model(0.1, 1.0, 1.0), [0.02, 0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4, 5]),
+    (Model(1.0, 0.1, 1.0), [0.02, 0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4, 5]),
+    (Model(1.0, 1.0, 0.1), [0.02, 0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4, 5]),
 ])
-def test_mul(client, z0, z1):
-    client.load("tests/test_asir/iori-mul.rr");
+def test_mul(client, model, z0, z1):
+    client.load("tests/test_asir/iori-mul2.rr");
+    client.execute_string(f'Pf = gen_pfaffian({Fraction(model.k)}, {Fraction(model.var_st)}, {Fraction(model.var_ob)});');
 
     def fun(xx, x, y, mu, sig):
-        client.execute_string(f"subst(Pf2, xx, {xx}, x, {x}, y, {y}, mu, {mu}, sig, {sig});")
+        client.execute_string(f"subst(Pf, xx, {xx}, x, {x}, y, {y}, mu, {mu}, sig, {sig});")
         return np.array(client.pop_cmo())
 
-    p = p_mul
+    p = lambda xx, x, y, mu, sig: p_mul(xx, x, y, mu, sig, model)
 
     val0 = p(*z0)
     val1_actual = hgm.solve(z0, z1, [val0], lambda zs: fun(*zs)).y[:, -1][0]
@@ -106,19 +132,22 @@ def test_mul(client, z0, z1):
     assert pytest.approx(val1_actual, abs=0.01) == val1_desired
 
 
-@pytest.mark.parametrize(('z0', 'z1'), [
-    ([0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4]),
-    ([0.01, 0.01, 0.02, 1.0], [4, 3, 2, 1]),
+@pytest.mark.parametrize(('model', 'z0', 'z1'), [
+    (Model(1.0, 1.0, 1.0), [0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4]),
+    (Model(0.1, 1.0, 1.0), [0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4]),
+    (Model(1.0, 0.1, 1.0), [0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4]),
+    (Model(1.0, 1.0, 0.1), [0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4]),
 ])
-def test_int1(client, z0, z1):
+def test_int_x(client, model, z0, z1):
     client.load("tests/test_asir/iori-int1.rr");
+    client.execute_string(f'Pf = gen_pfaffian({Fraction(model.k)}, {Fraction(model.var_st)}, {Fraction(model.var_ob)});');
 
     def fun(xx, y, mu, sig):
         client.execute_string(f"subst(Pf, xx, {xx}, y, {y}, mu, {mu}, sig, {sig});")
         return np.array(client.pop_cmo())
 
     def p(xx, y, mu, sig):
-        return integrate.quad(lambda x: p_mul(xx, x, y, mu, sig)
+        return integrate.quad(lambda x: p_mul(xx, x, y, mu, sig, model)
                              ,-np.inf
                              ,np.inf
                              )[0]
@@ -130,19 +159,22 @@ def test_int1(client, z0, z1):
     assert pytest.approx(val1_actual, abs=0.01) == val1_desired
 
 
-@pytest.mark.parametrize(('z0', 'z1'), [
-    ([0.01, 0.01, 0.02, 1.0], [1, 2, 3, 4]),
-    ([0.01, 0.01, 0.02, 1.0], [4, 3, 2, 1]),
+@pytest.mark.parametrize(('model', 'z0', 'z1'), [
+    (Model(1.0, 1.0, 1.0), [0.01, 0.01, 0.02, 0.01], [1, 2, 3, 4]),
+    (Model(0.1, 1.0, 1.0), [0.01, 0.01, 0.02, 0.01], [1, 2, 3, 4]),
+    (Model(1.0, 0.1, 1.0), [0.01, 0.01, 0.02, 0.01], [1, 2, 3, 4]),
+    (Model(1.0, 1.0, 0.1), [0.01, 0.01, 0.02, 0.01], [1, 2, 3, 4]),
 ])
-def test_int2(client, z0, z1):
+def test_int_xx(client, model, z0, z1):
     client.load("tests/test_asir/iori-int2.rr");
+    client.execute_string(f'Pf = gen_pfaffian({Fraction(model.k)}, {Fraction(model.var_st)}, {Fraction(model.var_ob)});');
 
     def fun(x, y, mu, sig):
         client.execute_string(f"subst(Pf, x, {x}, y, {y}, mu, {mu}, sig, {sig});")
         return np.array(client.pop_cmo())
 
     def int_pmul(x, y, mu, sig):
-        return integrate.quad(lambda xx: p_mul(xx, x, y, mu, sig)
+        return integrate.quad(lambda xx: p_mul(xx, x, y, mu, sig, model)
                              ,-np.inf
                              ,np.inf
                              )[0]
@@ -165,36 +197,27 @@ def test_int2(client, z0, z1):
     assert pytest.approx(val1_actual, abs=0.01) == val1_desired
 
 
-def test_int(client):
-    z0 = np.array([0.01, 0.01, 1.0])
-    z1 = np.array([1.0, 2.0, 3.0])
+@pytest.mark.skip(reason="This test spends a long time passsing")
+@pytest.mark.parametrize(('model', 'z0', 'z1'), [
+    (Model(1, 1, 1), [0.01, 0.01, 1.0], [1.0, 2.0, 3.0]),
+    (Model(0.1, 1, 1), [0.01, 0.01, 1.0], [1.0, 2.0, 3.0]),
+    (Model(1, 0.1, 1), [0.01, 0.01, 1.0], [1.0, 2.0, 3.0]),
+    (Model(1, 1, 0.1), [0.01, 0.01, 1.0], [1.0, 2.0, 3.0]),
+])
+def test_int_x_xx(client, model, z0, z1):
+    client.load("tests/test_asir/iori-int.rr")
+    client.execute_string(f'Pf=gen_pfaffian({Fraction(model.k)}, {Fraction(model.var_st)}, {Fraction(model.var_ob)});');
 
-    client.execute_string('Pf=bload("tests/test_asir/iori-int.bin");')
 
     def fun(y, mu, sig):
         client.execute_string(f"subst(Pf, y, {y}, mu, {mu}, sig, {sig});")
         return np.array(client.pop_cmo())
 
-    # val0 = v_phis(phi0, *z0)
-    val0 = [ -2.26946961e-04
-           , -1.82199367e-04
-           , 3.10209292e-03
-           , -8.15620917e-05
-           , 1.12648231e-03
-           , -4.11481246e-04
-           , 2.93652370e-01]
+    val0, val1_desired = v_phi2(phi0, z0, z1, model=model)
 
     val1_actual = hgm.solve(z0, z1, val0, lambda zs: fun(*zs)).y[:, -1]
-    # val1_desired = v_phis(phi0, *z1)
-    val1_desired = [ -0.005626
-                   , -0.00073575
-                   , 0.00229936
-                   , -0.11128256
-                   , 0.03087006
-                   , -0.00970615
-                   , 0.32661882]
 
-    assert pytest.approx(val1_actual, abs=0.01) == val1_desired
+    assert pytest.approx(val1_actual, abs=0.01) == np.array(val1_desired)
 
 
 def _test_phi_internal(client, z0, z1, val0, val1_desired):
@@ -291,29 +314,30 @@ def test_phi2(client):
 
 
 # This test SHOULD be fail
+@pytest.mark.skip(reason="This test spends a long time passsing")
 def test_phi0_singular_locus(client):
+    model = Model(4/5, 1, 1)
+
     # mu=0 is singular locus
     z0 = np.array([0.01, -0.01, 1.0])
     z1 = np.array([ 1, 0.001, 1])
 
     client.execute_string('Pf=bload("asir-src/pf0-iori2020.bin");')
 
-    val0 = v_phi(phi0, *z0)
-    val0 = [ -2.26946961e-04
-           , -1.82199367e-04
-           , 3.10209292e-03
-           , -8.15620917e-05
-           , 1.12648231e-03
-           , -4.11481246e-04
-           , 2.93652370e-01]
-
-    val1_desired = v_phi(phi0, *z1)
-    val1_desired=[ -0.00063284
-                 , -0.00710085
-                 , -0.00049771
-                 , -0.12877946
-                 , 0.04102894
-                 , -0.00025141
-                 , 0.11023361]
+    val0, val1_desired = v_phi2(phi0, z0, z1, model=model)
+    # val0 = [ -2.26946961e-04
+    #        , -1.82199367e-04
+    #        , 3.10209292e-03
+    #        , -8.15620917e-05
+    #        , 1.12648231e-03
+    #        , -4.11481246e-04
+    #        , 2.93652370e-01]
+    # val1_desired=[ -0.00063284
+    #              , -0.00710085
+    #              , -0.00049771
+    #              , -0.12877946
+    #              , 0.04102894
+    #              , -0.00025141
+    #              , 0.11023361]
 
     _test_phi_internal(client, z0, z1, val0, val1_desired)

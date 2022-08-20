@@ -10,7 +10,9 @@ def pf(I, Vars) {
   return yang.pf(S, G);
 }
 
+
 def gen_pfaffian(K, Var_st, Var_ob) {
+
   /* Gauss */
   Ii = [sig*dxi + (xi - mu)]$
   Imu = [sig*dmu - (x - mu)]$
@@ -54,19 +56,13 @@ def gen_pfaffian(K, Var_st, Var_ob) {
 
   Imul1 = nk_restriction.ann_mul(Igauss, Ist, [x, mu, sig, xx], [dx, dmu, dsig, dxx])$
 
-  /* Multiplication (2) */
-
   Imul1 = append(Imul1, [dy])$
   Iobs = append(subst(Iobs, x, xx, dx, dxx), [dx, dmu, dsig])$
 
   Imul2 = nk_restriction.ann_mul(Imul1, Iobs, [x, y, mu, sig, xx], [dx, dy, dmu, dsig, dxx])$
 
-  /* Integration */
-
-  Iint = nk_restriction.integration_ideal(Imul2, [x, xx, y, mu, sig], [dx, dxx, dy, dmu, dsig], [1,0,0,0,0])$
-
-  return matrix_matrix_to_list(pf(Iint, [xx, y, mu, sig]))$
+  return matrix_matrix_to_list(pf(Imul2, [xx, x, y, mu, sig]))$
 }
 
-
 end$
+
