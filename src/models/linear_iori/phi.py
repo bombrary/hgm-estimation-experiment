@@ -2,7 +2,7 @@ from scipy import integrate, stats
 import numpy as np
 from hgm_estimation.utils import derivative1, derivative2
 from multiprocessing import Pool
-from ..linear import Model
+from . import Model
 
 
 def p_obs(x, y, model: Model):
@@ -38,13 +38,13 @@ def phi0(y, mu, sig, model: Model):
 
 
 def phi1(y, mu, sig, model: Model):
-    fun = lambda x, xp: x * p_mul(x, xp, y, mu, sig, model)
-    return dblquad_inf(fun, ())
+    fun = lambda x, xp, y, mu, sig: x * p_mul(x, xp, y, mu, sig, model)
+    return dblquad_inf(fun, (y, mu, sig))
 
 
 def phi2(y, mu, sig, model: Model):
-    fun = lambda x, xp: x * x * p_mul(x, xp, y, mu, sig, model)
-    return dblquad_inf(fun, ())
+    fun = lambda x, xp, y, mu, sig: x * x * p_mul(x, xp, y, mu, sig, model)
+    return dblquad_inf(fun, (y, mu, sig))
 
 
 DERIV_ORD = [ [1, 0, 1]
@@ -58,8 +58,9 @@ DERIV_ORD = [ [1, 0, 1]
 
 
 # [dsig*dy,dsig*dmu,dsig^2,dy,dmu,dsig,1]
-def phi_deriv(fun, y, mu, sig, ord, model: Model):
-    print(f'[DEBUG] {fun}({y}, {mu}, {sig}, {ord})')
+def phi_deriv(fun, y, mu, sig, ord, model: Model, debug=True):
+    if debug:
+        print(f'[DEBUG] {fun}({y}, {mu}, {sig}, {ord})')
     match ord:
         case [1, 0, 1]:
             return derivative2(lambda  y, sig: fun(y, mu, sig, model),  [y, sig], [1, 1])
@@ -101,13 +102,13 @@ def v_phi2(phi, z0, z1, model: Model):
     return r1, r2
 
 
-def v_phis(y, mu, sig, model: Model):
-    args0 = [(phi0, y, mu, sig, ord, model) for ord in DERIV_ORD]
-    args1 = [(phi1, y, mu, sig, ord, model) for ord in DERIV_ORD]
-    args2 = [(phi2, y, mu, sig, ord, model) for ord in DERIV_ORD]
+def v_phis(y, mu, sig, model: Model, debug=True, processes=12):
+    args0 = [(phi0, y, mu, sig, ord, model, debug) for ord in DERIV_ORD]
+    args1 = [(phi1, y, mu, sig, ord, model, debug) for ord in DERIV_ORD]
+    args2 = [(phi2, y, mu, sig, ord, model, debug) for ord in DERIV_ORD]
     args = [*args0, *args1, *args2]
 
-    with Pool(processes=12) as p:
+    with Pool(processes=processes) as p:
         r = p.starmap(phi_deriv, args)
         r1 = r[:7]
         r2 = r[7:14]

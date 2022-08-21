@@ -7,8 +7,7 @@ from utils import pfs_phi
 from matplotlib import pyplot as plt
 from setup import client
 
-
-model = linear.Model(1, 1/10, 1, 10)
+model = linear.Model(9/10, 1, 1, 5)
 k, var_st, l, var_ob = model.to_frac()
 
 
@@ -17,9 +16,9 @@ client.execute_string(f'Pfs = gen_pfaffian({k}, {var_st}, {l}, {var_ob});')
 
 
 y0 = 0.1
-mu0 = 0.1
+mu0 = 0.01
 lam0 = 1.0
-x0 = 10.0
+x0 = 20.0
 xs, ys = linear.realize(x0, 50, model=model)
 v_phi00, v_phi10, v_phi20 = phi.v_phis_analytic(y0, mu0, lam0, model=model)
 result = estimation.run( y0, mu0, lam0, ys
@@ -32,9 +31,9 @@ result = estimation.run( y0, mu0, lam0, ys
                        )
 
 
-result_kalman = kalman.estimate(1.0, 10.0, ys, model=model)
+mus_kalman, ss_kalman = kalman.estimate(0.0, 1.0, ys, model=model)
 
-mus_naive, lams_naive = run_naive(y0, mu0, lam0, ys, model=model)
+mus_naive, lams_naive = run_naive(y0, 0.0, 1.0, ys, model=model)
 
 fig: plt.Figure = plt.figure()
 ax: plt.Axes = fig.add_subplot()
@@ -44,10 +43,10 @@ n = len(xs)
 ax.plot(range(0, n), xs, label="state")
 ax.plot(range(0, n), ys, label="observe")
 ax.plot(range(0, len(result.mus)), result.mus, label="estimate-hgm")
-ax.plot(range(0, len(result_kalman[0,1:])), result_kalman[0, 1:], label="estimate-kalman")
-ax.plot(range(1, len(mus_naive) + 1), mus_naive, label="estimate-naive")
+ax.plot(range(0, len(mus_kalman)), mus_kalman, label="estimate-kalman")
+ax.plot(range(0, len(mus_naive)), mus_naive, label="estimate-naive")
 ax.set_xlabel("time")
-ax.set_title("state var=0.1, observe var=10")
+ax.set_title(f"state var={var_st}, observe var={var_ob}")
 
 ax.legend()
 plt.show()
