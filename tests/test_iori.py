@@ -4,14 +4,10 @@ from scipy import integrate, stats
 import numpy as np
 from multiprocessing import Pool
 import pytest
-from src.models.linear_iori.phi import phi0, p_obs, p_st, p_gauss, p_mul, v_phi, v_phi2
-from src.models.linear import Model as LinearModel
+from src.models.linear_iori.phi import phi0, phi1, p_obs, p_st, p_gauss, p_mul, v_phi2
+from src.models.linear_iori import Model
 from fractions import Fraction
 
-
-
-def Model(k, var_st, var_ob):
-    return LinearModel(k, var_st, 1, var_ob)
 
 
 @pytest.mark.parametrize(('model', 'z0', 'z1'), [
@@ -204,10 +200,9 @@ def test_int_xx(client, model, z0, z1):
     (Model(1, 0.1, 1), [0.01, 0.01, 1.0], [1.0, 2.0, 3.0]),
     (Model(1, 1, 0.1), [0.01, 0.01, 1.0], [1.0, 2.0, 3.0]),
 ])
-def test_int_x_xx(client, model, z0, z1):
-    client.load("tests/test_asir/iori-int.rr")
+def test_phi0(client, model, z0, z1):
+    client.load("tests/test_asir/iori-phi0.rr")
     client.execute_string(f'Pf=gen_pfaffian({Fraction(model.k)}, {Fraction(model.var_st)}, {Fraction(model.var_ob)});');
-
 
     def fun(y, mu, sig):
         client.execute_string(f"subst(Pf, y, {y}, mu, {mu}, sig, {sig});")
@@ -220,97 +215,27 @@ def test_int_x_xx(client, model, z0, z1):
     assert pytest.approx(val1_actual, abs=0.01) == np.array(val1_desired)
 
 
-def _test_phi_internal(client, z0, z1, val0, val1_desired):
+# @pytest.mark.skip(reason="This test spends a long time passsing")
+@pytest.mark.parametrize(('model', 'z0', 'z1'), [
+      (Model(0.1, 1, 1), [0.01, 0.02, 1.0], [1.0, 2.0, 3.0]),
+#     (Model(0.1, 1, 1), [0.01, 0.01, 1.0], [1.0, 2.0, 3.0]),
+#     (Model(1, 0.1, 1), [0.01, 0.01, 1.0], [1.0, 2.0, 3.0]),
+#     (Model(1, 1, 0.1), [0.01, 0.01, 1.0], [1.0, 2.0, 3.0]),
+])
+def test_phi1(client, model, z0, z1):
+    client.load("tests/test_asir/iori-phi1.rr")
+    client.execute_string(f'Pf=gen_pfaffian({Fraction(model.k)}, {Fraction(model.var_st)}, {Fraction(model.var_ob)});');
+
     def fun(y, mu, sig):
         client.execute_string(f"subst(Pf, y, {y}, mu, {mu}, sig, {sig});")
         return np.array(client.pop_cmo())
 
-    val0 = np.array(val0)
+    val0, val1_desired = v_phi2(phi1, z0, z1, model=model)
+
     val1_actual = hgm.solve(z0, z1, val0, lambda zs: fun(*zs)).y[:, -1]
-    val1_desired = np.array(val1_desired)
 
-    assert pytest.approx(val1_actual, abs=0.01) == val1_desired
-        
+    assert pytest.approx(val1_actual, abs=0.01) == np.array(val1_desired)
 
-def test_phi0(client):
-    z0 = np.array([0.01, 0.01, 1.0])
-    z1 = np.array([1.0, 2.0, 3.0])
-
-    client.execute_string('Pf=bload("asir-src/pf0-iori2020.bin");')
-
-    # val0 = v_phis(*z0)
-    val0 = [ -2.26946961e-04
-           , -1.82199367e-04
-           , 3.10209292e-03
-           , -8.15620917e-05
-           , 1.12648231e-03
-           , -4.11481246e-04
-           , 2.93652370e-01]
-
-    # val1_desired = v_phis(*z1)
-    val1_desired = [ -0.005626
-                   , -0.00073575
-                   , 0.00229936
-                   , -0.11128256
-                   , 0.03087006
-                   , -0.00970615
-                   , 0.32661882]
-
-    _test_phi_internal(client, z0, z1, val0, val1_desired)
-
-
-def test_phi1(client):
-    z0 = np.array([0.01, 0.01, 1.0])
-    z1 = np.array([1.0, 2.0, 3.0])
-
-    client.execute_string('Pf=bload("asir-src/pf1-iori2020.bin");')
-
-    # val0 = v_phis(phi1, *z0)
-    val0 = [ 4.06999348e-02
-           , 1.17295408e-02
-           , -1.52413311e-04
-           , 2.32589161e-01
-           , 2.33243840e-01
-           , 5.24385018e-04
-           , 4.65850780e-03]
-
-    # val1_desired = v_phis(phi1, *z1)
-    val1_desired = [ -1.33162665e-02
-                   , -7.68652489e-03
-                   , -5.89238658e-05
-                   , -2.02078366e-01
-                   , 2.39832253e-01
-                   , 6.48069033e-03
-                   , 6.35265839e-01]
-
-    _test_phi_internal(client, z0, z1, val0, val1_desired)
-
-
-def test_phi2(client):
-    z0 = np.array([0.01, 0.01, 1.0])
-    z1 = np.array([1.0, 2.0, 3.0])
-
-    client.execute_string('Pf=bload("asir-src/pf2-iori2020.bin");')
-
-    # val0 = v_phis(phi2, *z0)
-    val0 = [ -0.00082662
-           , 0.00072744
-           , 0.01242631
-           , 0.00168018
-           , 0.00774273
-           , 0.21064475
-           , 0.47818713]
-
-    # val1_desired = v_phis(phi2, *z1)
-    val1_desired = [ -0.14588569
-                   , 0.00282539
-                   , -0.00425967
-                   , -0.83661729
-                   , 0.93925337
-                   , 0.17417929
-                   , 1.89181311]
-
-    _test_phi_internal(client, z0, z1, val0, val1_desired)
 
 
 # This test SHOULD be fail

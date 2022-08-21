@@ -1,0 +1,76 @@
+load("nk_restriction.rr")$
+load("yang.rr")$
+load("os_muldif.rr")$
+
+def pf(I, Vars) {
+  yang.define_ring(["partial", Vars]);
+  G = yang.gr(I);
+  S = yang.stdmon(G);
+  print(S);
+  return yang.pf(S, G);
+}
+
+
+def gen_pfaffian(K, Var_st, Var_ob) {
+  /* Gauss */
+  Ii = [sig*dxi + (xi - mu)]$
+  Imu = [sig*dmu - (x - mu)]$
+  Isig = [2*sig^2*dsig + sig - (x - mu)^2]$
+
+  Igauss = append(Imu, append(Isig, subst(Ii, xi, x, dxi, dx)))$
+
+
+  /* State */
+  Iw = [dw + w/Var_st]$ 
+  SE = [xx - K*x]$ 
+
+  Ixx_x = map(os_md.transpdo, Iw, [[w, dw]], [[SE[0], dx/diff(SE[0], x)]])$
+  Ixx_x = map(red, Ixx_x)$
+  Ixx_x = map(nm, Ixx_x)$
+  Ix_xx = map(os_md.transpdo, Iw, [[w, dw]], [[SE[0], dxx/diff(SE[0], xx)]])$
+  Ix_xx = map(red, Ix_xx)$
+  Ix_xx = map(nm, Ix_xx)$
+
+  Ist = append(Ixx_x, Ix_xx)$
+
+
+  /* Observation */
+  Iv = [dv + v/Var_ob]$
+  OE = [y - 2*x/(1+x^2)]$ 
+
+  Iy_x = map(os_md.transpdo, Iv, [[v, dv]], [[OE[0], dx/diff(OE[0], x)]])$
+  Iy_x = map(red, Iy_x)$
+  Iy_x = map(nm, Iy_x)$
+  Ix_y = map(os_md.transpdo, Iv, [[v, dv]], [[OE[0], dy/diff(OE[0], y)]])$
+  Ix_y = map(red, Ix_y)$
+  Ix_y = map(nm, Ix_y)$
+
+  Iobs = append(Iy_x, Ix_y)$
+
+
+  /* Multiplication (1) */
+  Igauss = append(Igauss, [dxx])$
+  Ist = append(Ist, [dmu, dsig])$
+
+  Imul1 = nk_restriction.ann_mul(Igauss, Ist, [x, mu, sig, xx], [dx, dmu, dsig, dxx])$
+
+  /* Multiplication (2) */
+
+  Imul1 = append(Imul1, [dy])$
+  Iobs = append(subst(Iobs, x, xx, dx, dxx), [dx, dmu, dsig])$
+
+  Imul2 = nk_restriction.ann_mul(Imul1, Iobs, [x, y, mu, sig, xx], [dx, dy, dmu, dsig, dxx])$
+
+  Imul3 = nk_restriction.ann_mul([dxx^2, xx*dxx - 1, dx, dmu, dsig, dy]
+                               , Imul2
+                               , [x, mu, sig, y, xx]
+                               , [dx, dmu, dsig, dy, dxx])$
+
+  /* Integration */
+
+  Iint = nk_restriction.integration_ideal(Imul3, [xx, x, y, mu, sig], [dxx, dx, dy, dmu, dsig], [1,1,0,0,0])$
+
+  return matrix_matrix_to_list(pf(Iint, [y, mu, sig]))$
+}
+
+end$
