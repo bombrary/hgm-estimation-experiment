@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from setup import client
 
 
-ou_model = ou_linear.Model(1/20, 1, 1, 10)
+ou_model = ou_linear.Model(1/20, 1, 1, 5)
 model = ou_model.to_linear_model()
 k, var_st, l, var_ob = model.to_frac()
 
@@ -45,8 +45,8 @@ ax.set_xscale('linear')
 n = len(xs)
 ax.plot(ts, xs, label="state")
 ax.plot(ts[y_steps], ys, label="observe")
-ax.plot(ts[y_steps], result_kalman[0, 1:], label="estimate-kalman")
-ax.plot(ts[y_steps], result.mus[1:], label="estimate-hgm")
+ax.plot(ts[y_steps], result_kalman[0], label="estimate-kalman")
+ax.plot(ts[y_steps], result.mus, label="estimate-hgm")
 ax.set_xlabel("time")
 ax.set_title(r"$\gamma=1/20$, $\sigma=1$, var of state noise=10")
 
