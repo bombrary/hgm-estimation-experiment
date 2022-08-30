@@ -5,6 +5,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from models.iori.iori_initial import v_phis_cache
+from models.iori import particle
 from models.iori.phi import phi0, phi1, phi2
 
 
@@ -93,7 +94,7 @@ def estimate_naive(mu0, sig0, ys):
 
     pbar = tqdm(ys)
     for y in pbar:
-        tqdm.write(f'mu,sig = {mu,sig}')
+        # tqdm.write(f'mu,sig = {mu,sig}')
         with Pool(processes=3) as p:
             args = [(phi0, y, mu, sig)
                    ,(phi1, y, mu, sig)
@@ -117,19 +118,22 @@ y0 = 0.01
 mu0 = 0.01
 sig0 = 1.0
 # v_phi00, v_phi10, v_phi20 = v_phis(y0, mu0, sig0)
-v_phi00, v_phi10, v_phi20 = v_phis_cache(y0, mu0, sig0)
+# v_phi00, v_phi10, v_phi20 = v_phis_cache(y0, mu0, sig0)
 
 xs, ys = realize(10, 100)
 result = estimate(ys)
 
 mus_naive, sigs_naive = estimate_naive(mu0, sig0, ys)
+mus_particle, sigs_particle = particle.estimate(ys, np.random.normal(loc=mu0, scale=1.0, size=100))
 
 client.send_shutdown()
 
 fig = plt.figure()
 ax = fig.add_subplot()
 ax.plot(range(len(xs)), xs)
-ax.plot(range(len(result[0])), result[0])
-ax.plot(range(len(mus_naive)), mus_naive)
+ax.plot(range(len(result[0])), result[0], label="HGM")
+ax.plot(range(len(mus_naive)), mus_naive, label="naive")
+ax.plot(range(len(mus_particle)), mus_particle, label="particle")
+ax.legend()
 fig.show()
 plt.show()
