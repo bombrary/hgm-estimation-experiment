@@ -19,27 +19,34 @@ def p_mul(x, xp, y, mu, sig):
     return p_st(x, xp) * p_obs(x, y) * p_gauss(xp, mu, sig)
 
 
-def dblquad_inf(fun, args):
+def p_pred(x, mu, sig):
+    return float(stats.norm.pdf(x, loc=4/5*mu, scale=np.sqrt((4/5)**2*sig + 1)))
+
+
+def dblquad_inf(fun):
     return integrate.dblquad(
             fun,
             -np.inf, np.inf,
-            lambda _: -np.inf, lambda _: np.inf,
-            args = args
-           )[0]
+            lambda _: -np.inf, lambda _: np.inf)[0]
+
+
+def quad_inf(fun):
+    return integrate.quad(fun, -np.inf, np.inf)[0]
 
 
 def phi0(y, mu, sig):
-    return dblquad_inf(p_mul, (y, mu, sig))
+    fun = lambda x: p_obs(x, y) * p_pred(x, mu, sig)
+    return quad_inf(fun)
 
 
 def phi1(y, mu, sig):
-    fun = lambda x, xp, y, mu, sig: x * p_mul(x, xp, y, mu, sig)
-    return dblquad_inf(fun, (y, mu, sig))
+    fun = lambda x: x * p_obs(x, y) * p_pred(x, mu, sig)
+    return quad_inf(fun)
 
 
 def phi2(y, mu, sig):
-    fun = lambda x, xp, y, mu, sig: x * x * p_mul(x, xp, y, mu, sig)
-    return dblquad_inf(fun, (y, mu, sig))
+    fun = lambda x: x * x * p_obs(x, y) * p_pred(x, mu, sig)
+    return quad_inf(fun)
 
 
 DERIV_ORD = [ [1, 0, 1]

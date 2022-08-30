@@ -84,24 +84,23 @@ def phi_wrapper(fun, y, mu, sig):
     return fun(y, mu, sig)
 
 
-def estimate_naive(ys, z0):
+def estimate_naive(mu0, sig0, ys):
 
-    # y = z0[0]
-    mu = z0[1]
-    sig = z0[2]
+    mu, sig = mu0, sig0
 
     mus = []
     sigs = []
-    for y in tqdm(ys):
+
+    pbar = tqdm(ys)
+    for y in pbar:
+        tqdm.write(f'mu,sig = {mu,sig}')
         with Pool(processes=3) as p:
             args = [(phi0, y, mu, sig)
                    ,(phi1, y, mu, sig)
                    ,(phi2, y, mu, sig)
                    ]
             p0, p1, p2 = p.starmap(phi_wrapper, args)
-        tqdm.write(f'p0 = {p0}')
-        tqdm.write(f'p1 = {p1}')
-        tqdm.write(f'p2 = {p2}')
+
 
         mu = p1 / p0
         sig = p2 / p0 - mu**2
@@ -110,6 +109,8 @@ def estimate_naive(ys, z0):
         sigs.append(sig)
 
     return mus, sigs
+
+
 
 
 y0 = 0.01
@@ -121,7 +122,7 @@ v_phi00, v_phi10, v_phi20 = v_phis_cache(y0, mu0, sig0)
 xs, ys = realize(10, 100)
 result = estimate(ys)
 
-# result_naive = estimate_naive(ys, np.array([y0, mu0, sig0]))
+mus_naive, sigs_naive = estimate_naive(mu0, sig0, ys)
 
 client.send_shutdown()
 
@@ -129,6 +130,6 @@ fig = plt.figure()
 ax = fig.add_subplot()
 ax.plot(range(len(xs)), xs)
 ax.plot(range(len(result[0])), result[0])
-# ax.plot(range(len(result_naive[0])), result_naive[0])
+ax.plot(range(len(mus_naive)), mus_naive)
 fig.show()
 plt.show()
