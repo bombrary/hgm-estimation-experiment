@@ -10,60 +10,48 @@ def pf(I, Vars) {
   return yang.pf(S, G);
 }
 
-
-def gen_pfaffian(K, Var_st, Var_ob) {
-  /* Generators of holonomic ideals for system and measurement noises*/
-  Ii = [sig*dxi + (xi - mu)]$
-  Imu = [sig*dmu - (x - mu)]$
-  Isig = [2*sig^2*dsig + sig - (x - mu)^2]$
-
-  /* system and measurement noises */
-  Iw = [dw + w/Var_st]; 
+def obs_ann(OE, Var_ob) {
   Iv = [dv + v/Var_ob];
 
-  /* State and mesurement equations */
-  SE = [xx - K*x]; 
-  OE = [y - 2*x/(1+x^2)]; 
-
-  /* preparation */
   Iy_x = map(os_md.transpdo, Iv, [[v, dv]], [[OE[0], dx/diff(OE[0], x)]]);
   Iy_x = map(red, Iy_x)$
   Iy_x = map(nm, Iy_x);
   Ix_y = map(os_md.transpdo, Iv, [[v, dv]], [[OE[0], dy/diff(OE[0], y)]]);
   Ix_y = map(red, Ix_y)$
   Ix_y = map(nm, Ix_y);
-  Ixx_x = map(os_md.transpdo, Iw, [[w, dw]], [[SE[0], dx/diff(SE[0], x)]]);
-  Ixx_x = map(red, Ixx_x)$
-  Ixx_x = map(nm, Ixx_x);
-  Ix_xx = map(os_md.transpdo, Iw, [[w, dw]], [[SE[0], dxx/diff(SE[0], xx)]]);
-  Ix_xx = map(red, Ix_xx)$
-  Ix_xx = map(nm, Ix_xx);
 
-  Itmp1 = append(Imu, append(Isig, append([dxx], subst(Ii, xi, x, dxi, dx))))$
-  Itmp2 = append(Ixx_x, append(Ix_xx, [dmu, dsig]))$
+  return append(Iy_x, Ix_y);
+}
 
-  Itj = nk_restriction.ann_mul(Itmp1, Itmp2, [x, mu, sig, xx], [dx, dmu, dsig, dxx])$
-  Itm = nk_restriction.integration_ideal(Itj, [x, mu, sig, xx], [dx, dmu, dsig, dxx], [1,0,0,0])$
-  Itm = subst(Itm, xx, x, dxx, dx)$
+def gen_pfaffian(K, Var_st, Var_ob) {
+  Var_pred = K^2 * sig + Var_st;
+  Mu_pred = K*mu;
+  Diff = x - Mu_pred;
+  Ipred = [Var_pred * dx + Diff
+          ,Var_pred * dmu - K * Diff
+          ,Var_pred^2*dsig + Var_pred*K^2/2 - K^2*Diff^2/2];
 
-  Itmp3 = append(Itm, [dy])$
-  Itmp4 = append(Iy_x, append(Ix_y, [dmu, dsig]))$
-  Ioj0 = nk_restriction.ann_mul(Itmp3
-                               , Itmp4
-                               , [x, mu, sig, y]
-                               , [dx, dmu, dsig, dy])$
-  Ioj1 = nk_restriction.ann_mul([dx^2, x*dx - 1, dmu, dsig, dy]
-                               , Ioj0
-                               , [x, mu, sig, y]
-                               , [dx, dmu, dsig, dy])$
-  Ioj2 = nk_restriction.ann_mul([dx^3, x^2*dx^2 - 2, x*dx - 2, dmu, dsig, dy]
-                               , Ioj0
-                               , [x, mu, sig, y]
-                               , [dx, dmu, dsig, dy])$
+  Iobs = obs_ann([y - 2*x/(1+x^2)], Var_ob); 
 
-  I0 = nk_restriction.integration_ideal(Ioj0, [x, mu, sig, y], [dx, dmu, dsig, dy], [1,0,0,0]);
-  I1 = nk_restriction.integration_ideal(Ioj1, [x, mu, sig, y], [dx, dmu, dsig, dy], [1,0,0,0]);
-  I2 = nk_restriction.integration_ideal(Ioj2, [x, mu, sig, y], [dx, dmu, dsig, dy], [1,0,0,0]);
+  Imul0 = nk_restriction.ann_mul(
+            append(Ipred, [dy]),
+            append(Iobs, [dmu, dsig]),
+            [x, y, mu, sig],
+            [dx, dy, dmu, dsig]);
+  Imul1 = nk_restriction.ann_mul(
+            [dx^2, x*dx - 1, dmu, dsig, dy],
+            Imul0,
+            [x, mu, sig, y],
+            [dx, dmu, dsig, dy]);
+  Imul2 = nk_restriction.ann_mul(
+            [dx^3, x^2*dx^2 - 2, x*dx - 2, dmu, dsig, dy],
+            Imul0,
+            [x, mu, sig, y],
+            [dx, dmu, dsig, dy]);
+
+  I0 = nk_restriction.integration_ideal(Imul0, [x, mu, sig, y], [dx, dmu, dsig, dy], [1,0,0,0]);
+  I1 = nk_restriction.integration_ideal(Imul1, [x, mu, sig, y], [dx, dmu, dsig, dy], [1,0,0,0]);
+  I2 = nk_restriction.integration_ideal(Imul2, [x, mu, sig, y], [dx, dmu, dsig, dy], [1,0,0,0]);
 
   /* [dsig*dy,dsig*dmu,dsig^2,dy,dmu,dsig,1] */
   Pf0 = pf(I0, [y, mu, sig])$
@@ -74,11 +62,3 @@ def gen_pfaffian(K, Var_st, Var_ob) {
 
   return [Pf0, Pf1, Pf2];
 }
-
-/*
- bsave(Pfs[0], "asir-src/pf0-iori2020.bin");
- bsave(Pfs[1], "asir-src/pf1-iori2020.bin");
- bsave(Pfs[2], "asir-src/pf2-iori2020.bin");
-*/
-
-end$
