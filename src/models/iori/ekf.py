@@ -5,7 +5,7 @@ def estimate_step(y, mu0, s0, k, var_st, var_ob):
     s_pred = var_st + s0 * k**2
     mu_pred = k * mu0
 
-    l = 2*(mu_pred - 1) / (1 + mu_pred**2)**2
+    l = -2*(mu_pred - 1) / (1 + mu_pred**2)**2
     u = 2*mu_pred**2/(1 + mu_pred**2)
 
     mu = (mu_pred*var_ob + s_pred*l*(y-u)) / (s_pred*l**2 + var_ob)
