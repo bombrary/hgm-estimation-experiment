@@ -20,6 +20,10 @@ def p_gauss(xp, mu, sig):
     return float(stats.norm.pdf(xp, loc=mu, scale=np.sqrt(sig)))
 
 
+def p_pred(x, mu, sig, model):
+    return float(stats.norm.pdf(x, loc=model.k*mu, scale=np.sqrt(model.k**2*sig + model.var_st)))
+
+
 def p_mul(x, xp, y, mu, sig, model):
     return p_st(x, xp, model) * p_obs(x, y, model) * p_gauss(xp, mu, sig)
 
@@ -33,18 +37,23 @@ def dblquad_inf(fun, args):
            )[0]
 
 
+def quad_inf(fun):
+    return integrate.quad(fun, -np.inf, np.inf)[0]
+
+
 def phi0(y, mu, sig, model: Model):
-    return dblquad_inf(p_mul, (y, mu, sig, model))
+    fun = lambda x: p_obs(x, y, model) * p_pred(x, mu, sig, model)
+    return quad_inf(fun)
 
 
 def phi1(y, mu, sig, model: Model):
-    fun = lambda x, xp, y, mu, sig: x * p_mul(x, xp, y, mu, sig, model)
-    return dblquad_inf(fun, (y, mu, sig))
+    fun = lambda x: x * p_obs(x, y, model) * p_pred(x, mu, sig, model)
+    return quad_inf(fun)
 
 
 def phi2(y, mu, sig, model: Model):
-    fun = lambda x, xp, y, mu, sig: x * x * p_mul(x, xp, y, mu, sig, model)
-    return dblquad_inf(fun, (y, mu, sig))
+    fun = lambda x: x * x * p_obs(x, y, model) * p_pred(x, mu, sig, model)
+    return quad_inf(fun)
 
 
 DERIV_ORD = [ [1, 0, 1]
