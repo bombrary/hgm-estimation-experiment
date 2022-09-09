@@ -1,9 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from models.iori import realize
-from models.iori import particle, ekf, ukf, naive
-
-
+from models.iori import particle, ekf, ukf, naive, hgm
 
 
 x0 = 10
@@ -12,7 +10,7 @@ y0 = 0.01
 mu0 = 10.0
 sig0 = 1.0
 
-mus, sigs = estimate(mu0, sig0, ys)
+mus, sigs = hgm.estimate(mu0, sig0, ys)
 # mus_naive, sigs_naive = naive.estimate(mu0, sig0, ys)
 mus_particle, sigs_particle = particle.estimate(ys, np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=100))
 mus_ekf, sigs_ekf = ekf.estimate(mu0, sig0, ys, k=4/5, var_st=1, var_ob=1)
