@@ -5,7 +5,7 @@ from hgm_estimation import estimation
 from utils import pfs_phi
 from matplotlib import pyplot as plt
 from setup import client
-
+import numpy as np
 
 ou_model = ou_linear.Model(1/20, 1, 1, 5)
 model = ou_model.to_linear_model()
@@ -17,7 +17,7 @@ client.execute_string(f'Pfs = gen_pfaffian({k}, {var_st}, {l}, {var_ob});')
 
 
 y0 = 0.1
-mu0 = 0
+mu0 = 10
 lam0 = 1.0
 x0 = 10
 ts, xs, ys, y_steps = ou_linear.realize(x0, 5000, model=ou_model)
@@ -33,7 +33,7 @@ result = estimation.run( y0, mu0, lam0, ys
                        , pfs_phi2 = lambda zs: pfs_phi(client, 2, zs)
                        )
 
-result_kalman = kalman.estimate(0.0, 1.0, ys, model=model)
+result_kalman = kalman.estimate(mu0, 1/lam0, ys, model=model)
 
 # %%
 
@@ -49,8 +49,23 @@ ax.plot(ts[y_steps], result_kalman[0], label="estimate-kalman")
 ax.plot(ts[y_steps], result.mus, label="estimate-hgm")
 ax.set_xlabel("time")
 ax.set_title(r"$\gamma=1/20$, $\sigma=1$, var of state noise=10")
+fig.set_facecolor('#fafafa')
 
 ax.legend()
 plt.show()
 
 client.send_shutdown()
+
+np.savetxt("data/ou_linear_t_states_gamma0.05_sigma1_obsvar10.csv",
+        np.array([ts, xs]).T,
+        delimiter=",",
+        comments="",
+        fmt="%.5f",
+        header="t, x")
+
+np.savetxt("data/ou_linear_obs_mus_gamma0.05_sigma1_obsvar10.csv",
+        np.array([ts[y_steps], ys, result.mus, result.lams, result_kalman[0], result_kalman[1]]).T,
+        delimiter=",",
+        comments="",
+        fmt="%.5f",
+        header="t, y, mu, lam, mu_kalman, lam_kalman")
