@@ -11,14 +11,19 @@ def create_z0(y1, mu1):
     return np.array([y0, mu0, 1.0])
 
 
-def estimate(mu0, sig0, ys):
+def estimate(mu0, sig0, ys, *, log=True, atol=1e-6, rtol=1e-3, events=None):
     # y = z0[0]
     mu = mu0
     sig = sig0
 
     mus = []
     sigs = []
-    pbar = tqdm(ys)
+
+    if log:
+        pbar = tqdm(ys)
+    else:
+        pbar = ys
+
     for y in pbar:
 
         z1 = np.array([y, mu, sig])
@@ -27,9 +32,9 @@ def estimate(mu0, sig0, ys):
         # tqdm.write(f'{z0} -> {z1}')
 
         v_phi00, v_phi10, v_phi20 = v_phis_cache(*z0)
-        r0 = hgm.solve(z0, z1, v_phi00, lambda zs: pfaffian.phi0(zs))
-        r1 = hgm.solve(z0, z1, v_phi10, lambda zs: pfaffian.phi1(zs))
-        r2 = hgm.solve(z0, z1, v_phi20, lambda zs: pfaffian.phi2(zs))
+        r0 = hgm.solve(z0, z1, v_phi00, lambda zs: pfaffian.phi0(zs), atol=atol, rtol=rtol, events=events)
+        r1 = hgm.solve(z0, z1, v_phi10, lambda zs: pfaffian.phi1(zs), atol=atol, rtol=rtol, events=events)
+        r2 = hgm.solve(z0, z1, v_phi20, lambda zs: pfaffian.phi2(zs), atol=atol, rtol=rtol, events=events)
 
         v_phi0 = r0.y[:, -1]
         v_phi1 = r1.y[:, -1]
