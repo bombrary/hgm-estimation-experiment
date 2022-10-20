@@ -31,7 +31,7 @@ def realize(x0, iter_max, *, dt = 0.01, model: Model):
     for step in range(0, iter_max):
         t = step * dt
 
-        dW = np.random.normal(0, dt)
+        dW = np.random.normal(0, np.sqrt(dt))
         dx = -gamma * x * dt + sigma * dW
         x += dx
 
