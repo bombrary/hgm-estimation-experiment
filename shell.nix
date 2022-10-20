@@ -14,6 +14,7 @@ let
     pytest
     (python-package-ox-asir p)
     (python-package-hgm p)
+    cython
   ]);
 in
 pkgs.mkShell {
