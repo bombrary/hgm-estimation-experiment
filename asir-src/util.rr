@@ -6,6 +6,7 @@ localf pf_from_ideal;
 localf pf_as_python_func, pf_as_python_func_allnp;
 localf save_Pfs_as_python;
 localf lcm_of_denoms;
+localf repeat, is_holonomic;
 
 /*  From Iori's code */
 def lcm_of_denoms(Pf) {
@@ -27,6 +28,23 @@ def lcm_of_denoms(Pf) {
 
 def dvar(X) {
   return strtov("d" + rtostr(X));
+}
+
+def repeat(X, N) {
+  Res = [];
+  for (I = 0; I < N; I++) {
+    Res = cons(X, Res);
+  }
+  return Res;
+}
+
+def is_holonomic(I, V, DV) {
+  V_Weyl = append(V, DV);
+  N = length(V);
+  Weight = append(repeat(0, N), repeat(1, N));
+  IN = nk_restriction.initial_w(I, V_Weyl, Weight);
+  H = sm1.hilbert([IN, V_Weyl]);
+  return deg(H, h) == 2;
 }
 
 def ann_mul(I, J, Ivars, Jvars) {
