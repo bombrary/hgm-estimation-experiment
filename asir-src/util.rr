@@ -5,6 +5,25 @@ localf print_pf_as_python_func;
 localf pf_from_ideal;
 localf pf_as_python_func, pf_as_python_func_allnp;
 localf save_Pfs_as_python;
+localf lcm_of_denoms;
+
+/*  From Iori's code */
+def lcm_of_denoms(Pf) {
+	L = length(Pf);
+	LCM = 1;
+
+	for( I = 0; I < L; I++){
+		TmpD = yang.extract_denom(Pf[I])[1];
+		LCM = TmpD * sdiv(LCM, gcd(TmpD, LCM));
+	}
+	Facs = fctr(LCM);
+	L = length(Facs);
+	LCM = 1;
+	for( I = 0; I < L; I++){
+		LCM = LCM * Facs[I][0];
+	}
+	return ptozp(LCM);
+}
 
 def dvar(X) {
   return strtov("d" + rtostr(X));
