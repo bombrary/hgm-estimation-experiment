@@ -30,52 +30,70 @@ def make_mu_1step(x0, gamma, sigma, dt, N):
     return xs.mean(axis=1)[-1], np.square(xs).mean(axis=1)[-1]
 
 
-M = 100
 N = 1000
-x = np.random.uniform(0, 1, M)
-moments = np.array([make_mu_1step(x, 1, 1/5, 0.01, 1000) for x in x], dtype=np.float64)
-y = moments[:, 0]
-
-model = linear_model.LinearRegression() 
-X = x[:,np.newaxis]
-reg = model.fit(X, y)
-print(f'coef: {reg.coef_}')
-print(f'intercept: {reg.intercept_}')
-
-# vars = moments[:, 1] - np.square(moments[:, 0])
-# reg_t = model.fit(X, vars)
-# print(reg_t.coef_)
-# print(1/(2*(1/20)) * (1 - np.exp(-2/20)))
-# print(reg_t.intercept_)
+M = 1000
+x = np.random.uniform(0, 1, N)
+moments = np.array([make_mu_1step(x, 1, 1/2, 0.01, M) for x in x], dtype=np.float64)
+means = moments[:, 0]
+vars = moments[:, 1] - np.square(moments[:, 0])
 
 
+def make_ord_array(x, ord):
+    return np.array([x**n for n in range(1, ord+1)])
+
+def fitting_nth_order(xs, y, ord, intercept):
+    model = linear_model.LinearRegression(fit_intercept=intercept)
+    X = np.array([ make_ord_array(x, ord) for x in xs])
+    model.fit(X, y)
+    return model
+
+
+mean_model = fitting_nth_order(x, means, 2, False)
+var_model = fitting_nth_order(x, vars, 4, True)
 
 fig: plt.Figure = plt.figure()
 ax0 = fig.add_subplot(2, 1, 1)
 ax1 = fig.add_subplot(2, 1, 2)
 
-# plot_x, plot_y = realize(0.8, 0.5, 0.5, 1000, 0.001, 3)
-# ax.plot(plot_x, plot_y, label="plot")
-
-plot_x = np.linspace(0, 1, 100)
-plot_y = reg.predict(plot_x[:,np.newaxis])
 
 def plot_mean(ax: plt.Axes):
     ax.set_xlabel("x")
     ax.set_ylabel("S(x)")
     ax.set_title("mean data of sFKPP process")
-    ax.scatter(x, y, label="data")
-    ax.plot(plot_x, plot_y, label="estimate")
+
+    ax.scatter(x, moments[:, 0], label="data")
+
+    coef = mean_model.coef_
+    intercept = mean_model.intercept_
+    ord = len(coef)
+    plot_x = np.linspace(0, 1, 100)
+    plot_y = [np.dot(make_ord_array(x, ord), coef) + intercept for x in plot_x ]
+    ax.plot(plot_x, plot_y, color='red', label='fitting result')
+
     ax.legend()
+
 
 def plot_var(ax: plt.Axes):
     ax.set_xlabel("x")
-    ax.set_ylabel("S(x)")
+    ax.set_ylabel("T(x)")
     ax.set_title("var data of sFKPP process")
+
     ax.scatter(x, moments[:, 1] - np.square(moments[:, 0]), label="data")
+
+    coef = var_model.coef_
+    intercept = var_model.intercept_
+    ord = len(coef)
+    plot_x = np.linspace(0, 1, 100)
+    plot_y = [np.dot(make_ord_array(x, ord), coef) + intercept for x in plot_x ]
+    ax.plot(plot_x, plot_y, color='red', label='fitting result')
+
     ax.legend()
+
 
 plot_mean(ax0)
 plot_var(ax1)
+
+print(f'mean: {mean_model.coef_}')
+print(f'var: {var_model.coef_}')
 
 plt.show()
