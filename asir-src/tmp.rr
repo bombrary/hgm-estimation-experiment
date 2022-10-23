@@ -1,0 +1,15 @@
+Pf1 = bload("pf1-iori2020.bin")$
+
+for(I = 0; I < 3; I++) {
+  M = newmat(7, 7, Pf1[I]);
+  print(subst(map(dn, M), mu, 0));
+}
+
+print();
+
+for(I = 0; I < 3; I++) {
+  M = newmat(7, 7, Pf1[I]);
+  print(subst(map(dn, M), mu, 0, y, 0));
+}
+
+end$

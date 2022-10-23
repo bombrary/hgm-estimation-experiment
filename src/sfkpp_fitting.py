@@ -41,15 +41,19 @@ vars = moments[:, 1] - np.square(moments[:, 0])
 def make_ord_array(x, ord):
     return np.array([x**n for n in range(1, ord+1)])
 
-def fitting_nth_order(xs, y, ord, intercept):
-    model = linear_model.LinearRegression(fit_intercept=intercept)
+def fitting_nth_order(xs, y, ord, intercept, alpha):
+    if alpha == 0:
+        model = linear_model.LinearRegression(fit_intercept=intercept)
+    else:
+        model = linear_model.Lasso(alpha=alpha, fit_intercept=intercept)
+
     X = np.array([ make_ord_array(x, ord) for x in xs])
     model.fit(X, y)
     return model
 
 
-mean_model = fitting_nth_order(x, means, 2, False)
-var_model = fitting_nth_order(x, vars, 4, True)
+mean_model = fitting_nth_order(x, means, 2, False, 0)
+var_model = fitting_nth_order(x, vars, 4, True, 1e-5)
 
 fig: plt.Figure = plt.figure()
 ax0 = fig.add_subplot(2, 1, 1)
