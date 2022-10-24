@@ -1,7 +1,5 @@
-load("yang.rr")$
-load("nk_restriction.rr")$
-load("os_muldif.rr")$
-load("util.rr")$
+/* State equation: sFKPP */
+/* Observation equation: linear */
 
 /* name rule */
 /*   x = x_{t}
@@ -9,10 +7,28 @@ load("util.rr")$
 /* sig = \sigma^{2} */
 /* mu = \mu_{t-1} */
 
-def gen_ann_st(C0, C1, C2, D0, D1, D2) {
+
+load("yang.rr")$
+load("nk_restriction.rr")$
+load("os_muldif.rr")$
+load("util.rr")$
+
+def make_poly(Coefs, Var) {
+  Res = 0;
+  N = length(Coefs);
+  L = Coefs;
+  for (I = 0; I < N; I++) {
+    E = car(L);
+    Res += E * Var^I;
+    L = cdr(L);
+  }
+  return Res;
+}
+
+def gen_ann_st(Coefs_C, Coefs_D) {
   /* Vars: [x, xp] */
-  S = C0 + C1*xp + C2*xp^2;
-  T = D0 + D1*xp + D2*xp^2;
+  S = make_poly(Coefs_C, xp);
+  T = make_poly(Coefs_D, xp);
   DS = diff(S, xp);
   DT = diff(T, xp);
   D = x - S;
@@ -23,12 +39,14 @@ def gen_ann_st(C0, C1, C2, D0, D1, D2) {
   return [L1, L2];
 }
 
+
 def gen_ann_gauss() {
   /* Vars: [xp, mu, sig] */
   /*L1 = sig*dxp + (xp - mu);
   L2 = sig*dmu - (xp - mu);
   L3 = 2*sig^2*dsig + sig - (xp - mu)^2;
   return [L1, L2, L3];*/
+
 
   /* Using a function WeylClosure in the Dmodule package in Macaulay2 */
   return [sig*dxp+xp-mu
@@ -39,7 +57,8 @@ def gen_ann_gauss() {
          ,dmu^2-2*dsig
          ,dxp*dmu+dmu^2
          ,sig*dmu-xp+mu
-         ,-xp*dmu+mu*dmu+2*sig*dsig+1];
+         ,-xp*dmu+mu*dmu+2*sig*dsig+1
+         ];
 }
 
 def gen_ann_ob(L, Var_ob) {
@@ -73,29 +92,64 @@ def gen_ann_pred_ob(Ipred, Iob) {
   return I;
 }
 
+def gr_test(I, Vars) {
+  /* e.g.) Vars = [x, y] -> V = [x, y, dx, dy] */
+  V = append(Vars, map(util.dvar, Vars));
+  N = length(Vars);
+  Gr = nd_weyl_gr(I, V, 0, poly_r_omatrix(N));
+  return Gr;
+}
+
 def stdmon_test(I, Vars) {
+  Gr = gr_test(I, Vars);  
   yang.define_ring(["partial", Vars]);
-  Gr = yang.gr(I);
   Sm = yang.stdmon(Gr);
   return Sm;
 }
 
-Ist = gen_ann_st(1, 1, 1, 1, 1, 1)$
+Coef_C = [0, 7/9]$
+Coef_D = [0, 1/8, -1/9]$
+print(["C", Coef_C])$
+print(["D", Coef_D])$
+
+Ist = gen_ann_st(Coef_C, Coef_D)$
 Igauss = gen_ann_gauss()$
 Iob = gen_ann_ob(1, 1)$
 
-Ipred = gen_ann_pred(Igauss, Ist)$
+T0 = time()$
+Ipred = gen_ann_pred(Igauss, Ist);
 
+print("gr_test call...")$
+T0 = time()$
+gr_test(Ipred, [x, mu, sig]);
+T1 = time()$
+print([["CPU time", T1[0] - T0[0]], ["GC time", T1[1] - T0[1]]])$
+
+/* stdmon_test(Ipred, [x, mu, sig]); */
+
+print("Imul0")$
 Imul0 = gen_ann_pred_ob(Ipred, Iob)$
+print("Imul1")$
 Imul1 = util.ann_mul([dx^2, x*dx - 1], Imul0, [x], [x, mu, sig, y])$
+print("Imul2")$
 Imul2 = util.ann_mul([dx^3, x^2*dx^2 - 2, x*dx - 2], Imul0, [x], [x, mu, sig, y])$
 
-I0 = nk_restriction.integration_ideal(Imul0, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0]);
-I1 = nk_restriction.integration_ideal(Imul1, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0]);
-I2 = nk_restriction.integration_ideal(Imul2, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0]);
+print("I0")$
+I0 = nk_restriction.integration_ideal(Imul0, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0])$
+print("I1")$
+I1 = nk_restriction.integration_ideal(Imul1, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0])$
+print("I2")$
+I2 = nk_restriction.integration_ideal(Imul2, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0])$
+T1 = time()$
 
-stdmon_test(I0);
-stdmon_test(I1);
-stdmon_test(I2);
+/* print computation time*/
+print([["CPU time", T1[0] - T0[0]], ["GC time", T1[1] - T0[1]]])$
+
+print("I0 stdmon")$
+stdmon_test(I0, [y, mu, sig]);
+print("I1 stdmon")$
+stdmon_test(I1, [y, mu, sig]);
+print("I2 stdmon")$
+stdmon_test(I2, [y, mu, sig]);
 
 end$
