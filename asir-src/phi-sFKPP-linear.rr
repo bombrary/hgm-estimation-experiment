@@ -107,8 +107,8 @@ def stdmon_test(I, Vars) {
   return Sm;
 }
 
-Coef_C = [0, 7/9]$
-Coef_D = [0, 1/8, -1/9]$
+Coef_C = [0, 1]$
+Coef_D = [1, 1, 1]$
 print(["C", Coef_C])$
 print(["D", Coef_D])$
 
@@ -124,8 +124,6 @@ T0 = time()$
 gr_test(Ipred, [x, mu, sig]);
 T1 = time()$
 print([["CPU time", T1[0] - T0[0]], ["GC time", T1[1] - T0[1]]])$
-
-/* stdmon_test(Ipred, [x, mu, sig]); */
 
 print("Imul0")$
 Imul0 = gen_ann_pred_ob(Ipred, Iob)$
@@ -143,13 +141,21 @@ I2 = nk_restriction.integration_ideal(Imul2, [x, mu, sig, y], [dx, dmu, dsig, dy
 T1 = time()$
 
 /* print computation time*/
+/*print([["CPU time", T1[0] - T0[0]], ["GC time", T1[1] - T0[1]]])$*/
+
+T0 = time()$
+print("I0 gr")$
+Gr0 = gr_test(I0, [y, mu, sig])$
+print("I1 gr")$
+Gr1 = gr_test(I1, [y, mu, sig])$
+print("I2 gr")$
+Gr2 = gr_test(I2, [y, mu, sig])$
+T1 = time()$
 print([["CPU time", T1[0] - T0[0]], ["GC time", T1[1] - T0[1]]])$
 
-print("I0 stdmon")$
-stdmon_test(I0, [y, mu, sig]);
-print("I1 stdmon")$
-stdmon_test(I1, [y, mu, sig]);
-print("I2 stdmon")$
-stdmon_test(I2, [y, mu, sig]);
+yang.define_ring(["partial", [y, mu, sig]]);
+yang.stdmon(Gr0);
+yang.stdmon(Gr1);
+yang.stdmon(Gr2);
 
 end$
