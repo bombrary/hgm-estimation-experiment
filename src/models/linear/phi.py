@@ -16,7 +16,7 @@ def phi_component(y, mu, lam, *, model: Model):
     mu = (mu_pred * var_ob + s_pred * l * y) / (s_pred * l**2 + var_ob)
     s = (s_pred * var_ob) / (s_pred * l**2 + var_ob)
     
-    coeff = stats.norm.pdf(y, loc=l*mu_pred, scale=np.sqrt(s_pred * l**2 + var_ob))
+    coeff = float(stats.norm.pdf(y, loc=l*mu_pred, scale=np.sqrt(s_pred * l**2 + var_ob)))
 
     return coeff, mu, s
 
