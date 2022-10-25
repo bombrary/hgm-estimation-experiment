@@ -4,7 +4,7 @@ localf dvar, ann_mul, gen_obs_eq;
 localf print_pf_as_python_func;
 localf pf_from_ideal;
 localf pf_as_python_func, pf_as_python_func_allnp;
-localf save_Pfs_as_python;
+localf save_Pfs_as_python, save_Pfs_as_cython;
 localf lcm_of_denoms;
 localf repeat, is_holonomic;
 localf p_map_coef, rat_map_coef, deval_pf_coefs;
@@ -144,7 +144,7 @@ def pf_from_ideal(I) {
 }
 
 
-def save_Pfs_as_python(Filename, Names, Pfs) {
+def save_Pfs_as_python(Pfs, Names, Filename) {
   remove_file(Filename);
   output(Filename);
   print("import numpy as np");
@@ -158,6 +158,35 @@ def save_Pfs_as_python(Filename, Names, Pfs) {
   output();
 }
 
+def save_Pfs_as_cython(Pfs, Filename)  {
+  remove_file(Filename);
+  output(Filename);
+
+  Preamble = [
+    "import numpy as np",
+    "cimport numpy as cnp",
+    "cimport cython",
+    "ctypedef cnp.float64_t DTYPE_t"
+  ];
+  for (I = 0; I < length(Preamble); I++) {
+    print(Preamble[I]);
+  }
+  print("");
+
+  /* Define functions */
+  for (I = 0; I < length(Pfs); I++) {
+    Func_name = "phi" + rtostr(I);
+    print("cpdef inline cnp.ndarray[DTYPE_t, ndim=3] " + Func_name + "(DTYPE_t[:] z):");
+    print("    cdef DTYPE_t y = z[0]");
+    print("    cdef DTYPE_t mu = z[1]");
+    print("    cdef DTYPE_t sig = z[2]");
+
+    L = matrix_matrix_to_list(Pfs[I]);
+    print("    return np.array(" + os_md.str_subst(rtostr(L), "^", "**") + ")");
+    print("");
+  }
+  output();
+}
 
 endmodule;
 
