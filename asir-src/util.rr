@@ -7,6 +7,7 @@ localf pf_as_python_func, pf_as_python_func_allnp;
 localf save_Pfs_as_python;
 localf lcm_of_denoms;
 localf repeat, is_holonomic;
+localf p_map_coef, rat_map_coef, deval_pf_coefs;
 
 /*  From Iori's code */
 def lcm_of_denoms(Pf) {
@@ -45,6 +46,46 @@ def is_holonomic(I, V, DV) {
   IN = nk_restriction.initial_w(I, V_Weyl, Weight);
   H = sm1.hilbert([IN, V_Weyl]);
   return deg(H, h) == N;
+}
+
+/* def add_one(C) { return C + 1; } */
+/* p_map_coef(x + 2*y + 3, [x, y], add_one) == 2*x + 3*y + 4 */
+def p_map_coef(P, Vars, Fun)  {
+  Res = 0;
+  for (DP = dp_ptod(P, Vars); DP != 0; DP = dp_rest(DP)) {
+    Coef = dp_hc(DP);
+    Term = dp_ht(DP);
+    Res += Fun(Coef) * Term;
+  }
+  return dp_dtop(Res, Vars);
+}
+
+def rat_map_coef(R, Vars, Fun) {
+  D = dn(R);
+  N = nm(R);
+
+  if (type(D) == 2) {
+    NewD = p_map_coef(D, Vars, Fun);
+  } else {
+    NewD = D;
+  }
+
+  if (type(N) == 2) {
+    NewN = p_map_coef(N, Vars, Fun);
+  } else {
+    NewN = N;
+  }
+
+  return NewN/NewD;
+}
+
+def deval_pf_coefs(Pf, Vars) {
+  N = length(Pf);
+  Res = vector(N);
+  for (I = 0; I < N; I++) {
+    Res[I] = map(rat_map_coef, Pf[I], Vars, deval);
+  }
+  return Res;
 }
 
 def ann_mul(I, J, Ivars, Jvars) {
