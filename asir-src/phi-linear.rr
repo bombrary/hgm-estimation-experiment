@@ -1,7 +1,8 @@
 load("yang.rr")$
 load("os_muldif.rr")$
 load("nk_restriction.rr")$
-load("util.rr");
+load("util.rr")$
+load("common.rr")$
 
 yang.define_ring(["partial", [y, mu, sig]])$
 
@@ -14,38 +15,17 @@ def pf(I) {
 }
 
 def gen_pfaffian(K, Var_st, L, Var_ob) {
-  Igauss = [sig*dxp+xp-mu
-            ,sig*dmu-xp+mu
-            ,2*sig^2*dsig-xp^2+2*xp*mu-mu^2+sig
-            ,dxp+dmu
-            ,2*dxp*dsig+2*dmu*dsig
-            ,dmu^2-2*dsig
-            ,dxp*dmu+dmu^2
-            ,sig*dmu-xp+mu
-            ,-xp*dmu+mu*dmu+2*sig*dsig+1
-            ]$
-
   Ist = [ dx + (x - K*xp)/Var_st
          , dxp - K*(x - K*xp)/Var_st]$
 
   Iob = [ dy + (y - L*x)/Var_ob
          , dx - L*(y - L*x)/Var_ob]$
 
+  Iphis = common.gen_ann_phis(Ist, Iob)$
 
-  Ipred = util.ann_mul(Igauss, Ist, [xp, mu, sig], [x, xp])$
-  Ipred = nk_restriction.integration_ideal(Ipred, [xp, x, mu, sig], [dxp, dx, dmu, dsig], [1, 0, 0, 0])$
-
-  Imul0 = util.ann_mul(Ipred, Iob, [x, mu, sig], [x, y])$
-  Imul1 = util.ann_mul([dx^2, x*dx - 1], Imul0, [x], [x, mu, sig, y])$
-  Imul2 = util.ann_mul([dx^3, x^2*dx^2 - 2, x*dx - 2], Imul0, [x], [x, xp, mu, sig, y])$
-
-  Iphi0 = nk_restriction.integration_ideal(Imul0, [x, y, mu, sig], [dx, dy, dmu, dsig], [1, 0, 0, 0])$
-  Iphi1 = nk_restriction.integration_ideal(Imul1, [x, y, mu, sig], [dx, dy, dmu, dsig], [1, 0, 0, 0])$
-  Iphi2 = nk_restriction.integration_ideal(Imul2, [x, y, mu, sig], [dx, dy, dmu, dsig], [1, 0, 0, 0])$
-
-  Pf0s = pf(Iphi0)$
-  Pf1s = pf(Iphi1)$
-  Pf2s = pf(Iphi2)$
+  Pf0s = pf(Iphis[0])$
+  Pf1s = pf(Iphis[1])$
+  Pf2s = pf(Iphis[2])$
 
   return [Pf0s, Pf1s, Pf2s];
 }

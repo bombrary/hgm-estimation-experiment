@@ -12,6 +12,7 @@ load("yang.rr")$
 load("nk_restriction.rr")$
 load("os_muldif.rr")$
 load("util.rr")$
+load("common.rr")$
 
 def make_poly(Coefs, Var) {
   Res = 0;
@@ -40,26 +41,6 @@ def gen_ann_st(Coefs_C, Coefs_D) {
 }
 
 
-def gen_ann_gauss() {
-  /* Vars: [xp, mu, sig] */
-  /*L1 = sig*dxp + (xp - mu);
-  L2 = sig*dmu - (xp - mu);
-  L3 = 2*sig^2*dsig + sig - (xp - mu)^2;
-  return [L1, L2, L3];*/
-
-
-  /* Using a function WeylClosure in the Dmodule package in Macaulay2 */
-  return [sig*dxp+xp-mu
-         ,sig*dmu-xp+mu
-         ,2*sig^2*dsig-xp^2+2*xp*mu-mu^2+sig
-         ,dxp+dmu
-         ,2*dxp*dsig+2*dmu*dsig
-         ,dmu^2-2*dsig
-         ,dxp*dmu+dmu^2
-         ,sig*dmu-xp+mu
-         ,-xp*dmu+mu*dmu+2*sig*dsig+1
-         ];
-}
 
 def gen_ann_ob(L, Var_ob) {
   /* Vars: [x, y] */
@@ -113,7 +94,7 @@ print(["C", Coef_C])$
 print(["D", Coef_D])$
 
 Ist = gen_ann_st(Coef_C, Coef_D)$
-Igauss = gen_ann_gauss()$
+Igauss = common.gen_ann_gauss()$
 Iob = gen_ann_ob(1, 1)$
 
 T0 = time()$

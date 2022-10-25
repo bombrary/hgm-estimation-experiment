@@ -1,12 +1,15 @@
 load("yang.rr")$
 load("os_muldif.rr")$
 load("nk_restriction.rr")$
-load("asir-src/util.rr");
+load("util.rr")$
+load("common.rr")$
 
-yang.define_ring(["partial", [y, mup, lamp]])$
+yang.define_ring(["partial", [y, mu, sig]])$
 
 def pf(I) {
-  G = yang.gr(I);
+  /* Faster than the code: "G = yang.gr(I)" */
+  G = nd_weyl_gr(I, [y, mu, sig, dy, dmu, dsig], 0, poly_r_omatrix(3));
+
   S = yang.stdmon(G);
   print(S);
   Pf = yang.pf(S, G);
@@ -14,28 +17,16 @@ def pf(I) {
 }
 
 def gen_pfaffian(K, Var_st, Var_ob) {
-  I_gauss = [ dxp + lamp*(xp - mup)
-            , dmup - lamp*(xp - mup)
-            , 2*lamp*dlamp - 1 + lamp*(xp - mup)^2]$
+  Ist = [ dx + (x - K*xp)/Var_st
+        , dxp - K*(x - K*xp)/Var_st]$
 
-  I_st = [ dx + (x - K*xp)/Var_st
-         , dxp - K*(x - K*xp)/Var_st]$
+  Iob = util.gen_obs_eq(y - 2*x/(1+x^2))$
 
-  I_ob = util.gen_obs_eq(y - 2*x/(1+x^2))$
+  Iphis = common.gen_ann_phis(Ist, Iob)$
 
-  I_mul0 = util.ann_mul(I_gauss, I_st, [xp, mup, lamp], [x, xp])$
-  I_mul0 = util.ann_mul(I_mul0, I_ob, [x, xp, mup, lamp], [x, y])$
-
-  I_mul1 = util.ann_mul([dx^2, x*dx - 1], I_mul0, [x], [x, xp, mup, lamp, y])$
-  I_mul2 = util.ann_mul([dx^3, x^2*dx^2 - 2, x*dx - 2], I_mul0, [x], [x, xp, mup, lamp, y])$
-
-  I_phi0 = nk_restriction.integration_ideal(I_mul0, [x, xp, y, mup, lamp], [dx, dxp, dy, dmup, dlamp], [1, 1, 0, 0, 0])$
-  I_phi1 = nk_restriction.integration_ideal(I_mul1, [x, xp, y, mup, lamp], [dx, dxp, dy, dmup, dlamp], [1, 1, 0, 0, 0])$
-  I_phi2 = nk_restriction.integration_ideal(I_mul2, [x, xp, y, mup, lamp], [dx, dxp, dy, dmup, dlamp], [1, 1, 0, 0, 0])$
-
-  Pf0s = matrix_matrix_to_list(pf(I_phi0))$
-  Pf1s = matrix_matrix_to_list(pf(I_phi1))$
-  Pf2s = matrix_matrix_to_list(pf(I_phi2))$
+  Pf0s = pf(Iphis[0])$
+  Pf1s = pf(Iphis[1])$
+  Pf2s = pf(Iphis[2])$
 
   return [Pf0s, Pf1s, Pf2s];
 }
