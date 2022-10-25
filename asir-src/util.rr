@@ -5,9 +5,10 @@ localf print_pf_as_python_func;
 localf pf_from_ideal;
 localf pf_as_python_func, pf_as_python_func_allnp;
 localf save_Pfs_as_python, save_Pfs_as_cython;
-localf lcm_of_denoms;
+localf lcm_of_denoms, lcm_of_denoms_pfs;
 localf repeat, is_holonomic;
 localf p_map_coef, rat_map_coef, deval_pf_coefs;
+
 
 /*  From Iori's code */
 def lcm_of_denoms(Pf) {
@@ -22,6 +23,22 @@ def lcm_of_denoms(Pf) {
 	L = length(Facs);
 	LCM = 1;
 	for( I = 0; I < L; I++){
+		LCM = LCM * Facs[I][0];
+	}
+	return ptozp(LCM);
+}
+
+def lcm_of_denoms_pfs(Pfs) {
+  L = length(Pfs);
+  LCM = 1;
+  for (I = 0; I < L; I++) {
+    TmpD = lcm_of_denoms(Pfs[I]);
+		LCM = TmpD * sdiv(LCM, gcd(TmpD, LCM));
+  }
+	Facs = fctr(LCM);
+	L = length(Facs);
+	LCM = 1;
+	for(I = 0; I < L; I++){
 		LCM = LCM * Facs[I][0];
 	}
 	return ptozp(LCM);
