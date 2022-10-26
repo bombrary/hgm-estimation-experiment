@@ -32,8 +32,11 @@ def lcm_of_denoms_pfs(Pfs) {
   L = length(Pfs);
   LCM = 1;
   for (I = 0; I < L; I++) {
-    TmpD = lcm_of_denoms(Pfs[I]);
-		LCM = TmpD * sdiv(LCM, gcd(TmpD, LCM));
+    M = length(Pfs[I]);
+    for (J = 0; J < L; J++) {
+      TmpD = yang.extract_denom(Pfs[I][J])[1];
+      LCM = TmpD * sdiv(LCM, gcd(TmpD, LCM));
+    }
   }
 	Facs = fctr(LCM);
 	L = length(Facs);
