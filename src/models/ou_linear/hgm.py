@@ -1,21 +1,19 @@
 import numpy as np
 from hgm_estimation import hgm
-from ..linear.phi import v_phis_analytic
 from tqdm import tqdm
 
-def estimate(y0, mu0, sig0, ys, *,
-        v_phi00, v_phi10, v_phi20,
-        pfs_phi0, pfs_phi1, pfs_phi2,
-        model):
+def estimate(mu0, sig0, ys, *,
+        fun_z0_vphis,
+        pfs_phi0, pfs_phi1, pfs_phi2):
     mu = mu0
     sig = sig0
-    z0 = np.array([y0, mu0, sig0])
 
     mus = []
     sigs = []
 
     for y in tqdm(ys):
         z1 = np.array([y, mu, sig])
+        z0, [v_phi00 ,v_phi10, v_phi20] = fun_z0_vphis(z1)
 
         r0 = hgm.solve(z0, z1, v_phi00, lambda zs: pfs_phi0(zs))
         r1 = hgm.solve(z0, z1, v_phi10, lambda zs: pfs_phi1(zs))

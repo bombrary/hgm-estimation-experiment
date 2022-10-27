@@ -17,17 +17,16 @@ mu0 = 10
 sig0 = 1.0
 x0 = 10
 ts, xs, ys, y_steps = ou_linear.realize(x0, 5000, model=ou_model)
+
 v_phi00, v_phi10, v_phi20 = phi.v_phis_analytic(y0, mu0, sig0, model=model)
+def fun_z0_vphis(z0):
+    return [y0, mu0, sig0], [v_phi00, v_phi10, v_phi20]
 
-
-result_hgm = hgm.estimate( y0, mu0, sig0, ys
-                         , v_phi00 = v_phi00
-                         , v_phi10 = v_phi10
-                         , v_phi20 = v_phi20
+result_hgm = hgm.estimate( mu0, sig0, ys
+                         , fun_z0_vphis = fun_z0_vphis
                          , pfs_phi0 = lambda zs: pf.phi0(zs)
                          , pfs_phi1 = lambda zs: pf.phi1(zs)
                          , pfs_phi2 = lambda zs: pf.phi2(zs)
-                         , model=model
                          )
 
 result_kalman = kalman.estimate(mu0, sig0, ys, model=model)
