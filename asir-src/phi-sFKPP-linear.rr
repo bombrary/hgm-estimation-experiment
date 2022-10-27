@@ -58,7 +58,7 @@ def gen_ann_pred(Igauss, Ist) {
   Itmp2 = append(Ist, [dmu, dsig]);
 
   Itmp = nk_restriction.ann_mul(Itmp1, Itmp2, Vars, DVars);
-  Ipred = nk_restriction.integration_ideal(Itmp, Vars, DVars, [1, 0, 0, 0]);
+  Ipred = nk_restriction.ost_integration_ideal(Itmp, Vars, DVars, [1, 0, 0, 0], [0], [1]);
   return Ipred;
 }
 
@@ -114,11 +114,11 @@ print("Imul2")$
 Imul2 = util.ann_mul([dx^3, x^2*dx^2 - 2, x*dx - 2], Imul0, [x], [x, mu, sig, y])$
 
 print("I0")$
-I0 = nk_restriction.integration_ideal(Imul0, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0])$
+I0 = nk_restriction.ost_integration_ideal(Imul0, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0], [0], [1])$
 print("I1")$
-I1 = nk_restriction.integration_ideal(Imul1, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0])$
+I1 = nk_restriction.ost_integration_ideal(Imul1, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0], [0], [1])$
 print("I2")$
-I2 = nk_restriction.integration_ideal(Imul2, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0])$
+I2 = nk_restriction.ost_integration_ideal(Imul2, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0], [0], [1])$
 T1 = time()$
 
 /* print computation time*/
