@@ -1,10 +1,64 @@
 import numpy as np
 from scipy import stats, integrate
+from scipy.misc import derivative
 from . import Model
-import multiprocessing
+from multiprocessing import Pool
 from numpy.typing import NDArray
-from hgm_estimation.utils import derivative
 
+def p_st(x, xp, model: Model):
+    return float(stats.norm.pdf(x, loc=model.k*xp, scale=np.sqrt(model.var_st)))
+
+
+def p_ob(x, y, model: Model):
+    return float(stats.norm.pdf(y, loc=2*x/(1 + x**2), scale=np.sqrt(model.var_ob)))
+
+
+def p_postprev(xp, mu, sig):
+    # NOTE: Here sig is a variance, not a std.
+    return float(stats.norm.pdf(xp, loc=mu, scale=sig))
+
+
+def p_pred(x, mu, sig, model):
+    # Compute "∫ p_st * p_posrprev dx"
+    # In this model, it can be computed analytically
+    loc = model.k * mu
+    scale = np.sqrt(sig*model.k**2 + 1**2) # NOTE: scale is std, not variance.
+    return float(stats.norm.pdf(x, loc=loc, scale=scale))
+
+
+def p_join0(x, y, mu, sig, model):
+    return p_pred(x, mu, sig, model) * p_ob(x, y, model)
+
+
+def p_join1(x, y, mu, sig, model):
+    return x * p_join0(x, y, mu, sig, model)
+
+
+def p_join2(x, y, mu, sig, model):
+    return x * x * p_join0(x, y, mu, sig, model)
+
+
+def quad_inf(func, args):
+    return integrate.quad(func,
+                          -np.inf, np.inf,
+                          args)[0]
+
+def phi0(y, mu, sig, model):
+    return quad_inf(p_join0, (y, mu, sig, model))
+
+
+def phi1(y, mu, sig, model):
+    return quad_inf(p_join1, (y, mu, sig, model))
+
+
+def phi2(y, mu, sig, model):
+    return quad_inf(p_join2, (y, mu, sig, model))
+
+
+# Standard Monomials
+# phi0: [dsig*dy,dsig*dmu,dsig^2,dy,dmu,dsig,1]
+# phi1: [dsig*dy,dsig*dmu,dsig^2,dy,dmu,dsig,1]
+# phi2: [dsig*dy,dsig*dmu,dsig^2,dy,dmu,dsig,1]
 
 DERIV_ORD = [ [1, 0, 1]
             , [0, 1, 1]
@@ -16,113 +70,58 @@ DERIV_ORD = [ [1, 0, 1]
             ]
 
 
-def p_gauss(xp: float, mu: float, lam: float) -> NDArray[np.float64]:
-    return stats.norm.pdf(xp, loc=mu, scale=np.sqrt(1/lam))
+# Compute d^2/(dx*dy) fun(x,y)
+def derivative_11(fun, zs, dz=1e-3):
+    a = fun(zs[0] + dz, zs[1] + dz)
+    b = fun(zs[0] - dz, zs[1] + dz)
+    c = fun(zs[0] + dz, zs[1] - dz)
+    d = fun(zs[0] - dz, zs[1] - dz)
+    return (a - b - c + d) / (4*dz**2)
 
 
-def p_obs(y: float, x: float, *, model: Model) -> NDArray[np.float64]:
-    return stats.norm.pdf(y, loc=(2*x)/(1+x**2), scale=np.sqrt(model.var_ob))
+def deriv_ord(n):
+    if n % 2 == 0:
+        return n + 1
+    else:
+        return n + 2
 
 
-def p_st(x: float, xp: float, *, model: Model) -> NDArray[np.float64]:
-    return stats.norm.pdf(x, loc=model.k*xp, scale=np.sqrt(model.var_st))
+def my_derivative(func, args, ns, *, dx=1e-3):
+    y0, mu0, sig0, model = args
+    # order = [y, mu, sig]
+    match ns:
+        case [0, 0, 0]:
+            return func(*args)
+        case [0, 0, n]:
+            order = deriv_ord(n)
+            return derivative(lambda sig: func(y0, mu0, sig, model), sig0, dx=dx, n=n, order=order)
+        case [0, n, 0]:
+            order = deriv_ord(n)
+            return derivative(lambda mu: func(y0, mu, sig0, model), mu0, dx=dx, n=n, order=order)
+        case [n, 0, 0]:
+            order = deriv_ord(n)
+            return derivative(lambda y: func(y, mu0, sig0, model), y0, dx=dx, n=n, order=order)
+        case [1, 0, 1]:
+            return derivative_11(lambda y, sig: func(y, mu0, sig, model), [y0, sig0], dx)
+        case [0, 1, 1]:
+            return derivative_11(lambda mu, sig: func(y0, mu, sig, model), [mu0, sig0], dx)
+        case _:
+            raise NotImplementedError()
 
 
-def p_mul(x: float, xp: float, y: float, mu: float, lam: float, *, model: Model) -> NDArray[np.float64]:
-    return p_gauss(xp, mu, lam) * p_obs(y, x, model=model) * p_st(x, xp, model=model)
-
-
-def phi0(y, mu, lam, *, model: Model) -> float:
-    return integrate.dblquad(
-        lambda x, xp, y, mu, lam: p_mul(x, xp, y, mu, lam, model=model),
-        -np.inf, np.inf,
-        lambda _: -np.inf, lambda _: np.inf, 
-        args=(y, mu, lam)
-    )[0]
-
-
-def phi1(y, mu, lam, *, model: Model) -> float:
-    return integrate.dblquad(
-        lambda x, xp, y, mu, lam: x * p_mul(x, xp, y, mu, lam, model=model),
-        -np.inf, np.inf,
-        lambda _: -np.inf, lambda _: np.inf, 
-        args=(y, mu, lam)
-    )[0]
-
-
-def phi2(y, mu, lam, *, model: Model) -> float:
-    return integrate.dblquad(
-        lambda x, xp, y, mu, lam: x*x * p_mul(x, xp, y, mu, lam, model=model),
-        -np.inf, np.inf,
-        lambda _: -np.inf, lambda _: np.inf, 
-        args=(y, mu, lam)
-    )[0]
-
-
-def derivative_with_model(func, zs: list[float], ord: list[int], model: Model) -> float:
-    def new_func(y, mu, lam):
-        print(f"[DEBUG] func({y}, {mu}, {lam})")
-        return func(y, mu, lam, model=model)
-
-    return derivative(new_func, zs, ord)
-
-
-def deriv_wrapper(t):
-    return derivative_with_model(t[0], t[1], t[2], t[3])
-
-
-def split_by_len(l, *len_list):
-    res = []
-
-    cur = 0
-    for n in len_list:
-        res.append(l[cur:cur+n])
-        cur += n
-
-    return res
-
-
-def v_phis(y, mu, lam, *, model: Model):
-    zs = [y, mu, lam]
-
-    args0 = [(phi0, zs, order, model) for order in DERIV_ORD]
-    args1 = [(phi1, zs, order, model) for order in DERIV_ORD]
-    args2 = [(phi2, zs, order, model) for order in DERIV_ORD]
+def v_phis(y, mu, sig, model):
+    args0 = [(phi0, (y, mu, sig, model), ns) for ns in DERIV_ORD]
+    args1 = [(phi1, (y, mu, sig, model), ns) for ns in DERIV_ORD]
+    args2 = [(phi2, (y, mu, sig, model), ns) for ns in DERIV_ORD]
     args = [*args0, *args1, *args2]
 
-    with multiprocessing.Pool(processes=10) as pool:
-        r = pool.map(deriv_wrapper, args)
+    N = len(DERIV_ORD)
 
-    return split_by_len(r, len(args0), len(args1), len(args2))
+    with Pool(processes=12) as p:
+        r = p.starmap(my_derivative, args)
+        v_phi0 = r[:N]
+        v_phi1 = r[N:2*N]
+        v_phi2 = r[2*N:]
+        
 
-
-# model = Model(1/20, 1, 10)
-# v_phis(0.01, 0.01, 1.0, model=model)
-
-# Computation time: 2min (Arch Linux, Ryzen 7 5800X)
-# [[2.7755575615628914e-05,
-#   1.3877787807814457e-05,
-#   0.0001942890293094024,
-#   -5.9331914381566264e-05,
-#   5.5963240985779095e-05,
-#   -4.120781493810455e-05,
-#   0.1222089207156917],
-#  [-0.001928904085068961,
-#   -0.0007298849025172416,
-#   6.071532165918825e-05,
-#   0.010759901400208757,
-#   0.11641007604471909,
-#   -2.6628005789924858e-05,
-#   0.0012717074109904979],
-#  [7.632783294297951e-05,
-#   -4.163336342344337e-05,
-#   0.22523649612082863,
-#   -3.573889795216445e-05,
-#   0.0024209494825511158,
-#   -0.11216354085796798,
-#   0.2272033734261355]]
-
-# Warning come out
-# 
-# /home/bombrary/.pyenv/versions/3.10.5/lib/python3.10/site-packages/scipy/integrate/_quadpack_py.py:879: IntegrationWarning: The inte gral is probably divergent, or slowly convergent.
-#   quad_r = quad(f, low, high, args=args, full_output=self.full_output,
+    return np.array([v_phi0, v_phi1, v_phi2], dtype=np.float64)
