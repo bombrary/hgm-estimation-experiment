@@ -30,16 +30,9 @@ def make_mu_1step(x0, gamma, sigma, dt, N):
     return xs.mean(axis=1)[-1], np.square(xs).mean(axis=1)[-1]
 
 
-N = 1000
-M = 1000
-x = np.random.uniform(0, 1, N)
-moments = np.array([make_mu_1step(x, 1, 1/2, 0.01, M) for x in x], dtype=np.float64)
-means = moments[:, 0]
-vars = moments[:, 1] - np.square(moments[:, 0])
-
-
 def make_ord_array(x, ord):
     return np.array([x**n for n in range(1, ord+1)])
+
 
 def fitting_nth_order(xs, y, ord, intercept, alpha):
     if alpha == 0:
@@ -52,23 +45,16 @@ def fitting_nth_order(xs, y, ord, intercept, alpha):
     return model
 
 
-mean_model = fitting_nth_order(x, means, 2, False, 0)
-var_model = fitting_nth_order(x, vars, 4, True, 1e-5)
 
-fig: plt.Figure = plt.figure()
-ax0 = fig.add_subplot(2, 1, 1)
-ax1 = fig.add_subplot(2, 1, 2)
-
-
-def plot_mean(ax: plt.Axes):
+def plot_mean(ax: plt.Axes, model):
     ax.set_xlabel("x")
     ax.set_ylabel("S(x)")
     ax.set_title("mean data of sFKPP process")
 
     ax.scatter(x, moments[:, 0], label="data")
 
-    coef = mean_model.coef_
-    intercept = mean_model.intercept_
+    coef = model.coef_
+    intercept = model.intercept_
     ord = len(coef)
     plot_x = np.linspace(0, 1, 100)
     plot_y = [np.dot(make_ord_array(x, ord), coef) + intercept for x in plot_x ]
@@ -77,27 +63,69 @@ def plot_mean(ax: plt.Axes):
     ax.legend()
 
 
-def plot_var(ax: plt.Axes):
+def plot_var(ax: plt.Axes, model, title: str):
     ax.set_xlabel("x")
     ax.set_ylabel("T(x)")
     ax.set_title("var data of sFKPP process")
 
     ax.scatter(x, moments[:, 1] - np.square(moments[:, 0]), label="data")
 
-    coef = var_model.coef_
-    intercept = var_model.intercept_
+    coef = model.coef_
+    intercept = model.intercept_
     ord = len(coef)
     plot_x = np.linspace(0, 1, 100)
     plot_y = [np.dot(make_ord_array(x, ord), coef) + intercept for x in plot_x ]
     ax.plot(plot_x, plot_y, color='red', label='fitting result')
 
+    ax.set_title(title)
     ax.legend()
 
 
-plot_mean(ax0)
-plot_var(ax1)
+N = 1000
+M = 1000
+x = np.random.uniform(0, 1, N)
+moments = np.array([make_mu_1step(x, 1, 1/2, 0.01, M) for x in x], dtype=np.float64)
+means = moments[:, 0]
+vars = moments[:, 1] - np.square(moments[:, 0])
 
-print(f'mean: {mean_model.coef_}')
-print(f'var: {var_model.coef_}')
+
+mean_model_1d = fitting_nth_order(x, means, 1, False, 0)
+mean_model_2d = fitting_nth_order(x, means, 2, False, 0)
+
+var_model_2d = fitting_nth_order(x, vars, 2, False, 0)
+var_model_3d = fitting_nth_order(x, vars, 3, False, 0)
+var_model_3d_lasso = fitting_nth_order(x, vars, 3, False, 1e-4)
+var_model_4d = fitting_nth_order(x, vars, 4, False, 0)
+var_model_4d_lasso = fitting_nth_order(x, vars, 4, False, 1e-4)
+
+print(f'     mean(1d): {mean_model_1d.coef_}')
+print(f'     mean(2d): {mean_model_2d.coef_}')
+print(f'      var(2d): {var_model_2d.coef_}')
+print(f'      var(3d): {var_model_3d.coef_}')
+print(f'var(3d Lasso): {var_model_3d_lasso.coef_}')
+print(f'      var(4d): {var_model_4d.coef_}')
+print(f'var(4d Lasso): {var_model_4d_lasso.coef_}')
+
+fig: plt.Figure = plt.figure()
+ax_mean0 = fig.add_subplot(2, 1, 1)
+ax_mean1 = fig.add_subplot(2, 1, 2)
+
+plot_mean(ax_mean0, mean_model_1d)
+plot_mean(ax_mean1, mean_model_2d)
+
+fig: plt.Figure = plt.figure()
+ax_var0 = fig.add_subplot(2, 3, 1)
+ax_var1 = fig.add_subplot(2, 3, 2)
+ax_var2 = fig.add_subplot(2, 3, 5)
+ax_var3 = fig.add_subplot(2, 3, 3)
+ax_var4 = fig.add_subplot(2, 3, 6)
+
+plot_var(ax_var0, var_model_2d, "variance 2nd order")
+plot_var(ax_var1, var_model_3d, "variance 3rd order")
+plot_var(ax_var2, var_model_3d_lasso, "variance 3rd order (LASSO)")
+plot_var(ax_var3, var_model_4d, "variance 4th order")
+plot_var(ax_var4, var_model_4d_lasso, "variance 4th order (LASSO)")
+
+plt.subplots_adjust(wspace=0.4, hspace=0.6)
 
 plt.show()
