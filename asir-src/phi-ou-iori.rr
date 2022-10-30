@@ -6,6 +6,16 @@ load("common.rr")$
 
 yang.define_ring(["partial", [y, mu, sig]])$
 
+def reduce_denom(R) {
+  R = red(R);
+  while(dn(R) != 1) {
+    print(R);
+    R *= dn(R);
+    R = red(R);
+  }
+  return R;
+}
+
 def pf(I) {
   /* Faster than the code: "G = yang.gr(I)" */
   G = nd_weyl_gr(I, [y, mu, sig, dy, dmu, dsig], 0, poly_r_omatrix(3));
@@ -20,7 +30,10 @@ def gen_pfaffian(K, Var_st, Var_ob) {
   Ist = [ dx + (x - K*xp)/Var_st
         , dxp - K*(x - K*xp)/Var_st]$
 
-  Iob = util.gen_obs_eq(y - 2*x/(1+x^2))$
+  H = 2*x/(1 + x^2)$
+  Iob = [ dy + (y - H)/Var_ob
+        , dx - diff(H, x)*(y - H)/Var_ob]$
+  Iob = map(reduce_denom, Iob);
 
   Iphis = common.gen_ann_phis(Ist, Iob)$
 
