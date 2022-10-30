@@ -19,7 +19,7 @@ class Model:
 
 
 def dx(x: float, dt: float, *, gamma: float, sigma: float):
-    dW = np.random.normal(0, dt)
+    dW = np.random.normal(0, np.sqrt(dt))
     return -gamma * x * dt + sigma * dW
 
 
@@ -52,3 +52,4 @@ def realize(x0, iter_max, *, dt = 0.01, model: Model):
         xs.append(x)
     
     return np.array(ts), np.array(xs), np.array(ys), np.array(y_steps)
+

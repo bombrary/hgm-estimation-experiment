@@ -22,18 +22,18 @@ def fact_vphi1(y, mu, sig):
     c2 = 49569
     return (c0*sig+c1)*y + c2*mu 
 
-    C0 = 94302;
+
 def fun_z0_vphi1(z1):
     [y1, mu1, sig1] = z1
     C = fact_vphi1(y1, mu1, sig1)
     if mu1 > 0 and C > 0:
-        y0, mu0, sig0 = 0.01, 0.01, 0.01
+        y0, mu0, sig0 = 1.0, 1.0, 0.01
     elif mu1 < 0 and C < 0:
-        y0, mu0, sig0 = -0.01, -0.01, 0.01
+        y0, mu0, sig0 = -1.0, -1.0, 0.01
     elif mu1 < 0 and C > 0:
-        y0, mu0, sig0 = 0.01, -0.01, 0.01
+        y0, mu0, sig0 = 1.0, -1.0, 0.01
     else:
-        y0, mu0, sig0 = -0.01, 0.01, 0.01
+        y0, mu0, sig0 = -1.0, 1.0, 0.01
 
     z0 = [y0, mu0, sig0]
     return z0, v_phis0_cache(phi.phi1, z0)
