@@ -109,6 +109,15 @@ def my_derivative(func, args, ns, *, dx=1e-3):
             raise NotImplementedError()
 
 
+def v_phi(phi, y, mu, sig, model):
+    args = [(phi, (y, mu, sig, model), ns) for ns in DERIV_ORD]
+
+    with Pool(processes=12) as p:
+        r = p.starmap(my_derivative, args)
+
+    return np.array(r, dtype=np.float64)
+
+
 def v_phis(y, mu, sig, model):
     args0 = [(phi0, (y, mu, sig, model), ns) for ns in DERIV_ORD]
     args1 = [(phi1, (y, mu, sig, model), ns) for ns in DERIV_ORD]
