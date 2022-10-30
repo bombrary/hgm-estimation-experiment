@@ -1,0 +1,142 @@
+/* State equation: sFKPP */
+/* Observation equation: linear */
+
+/* name rule */
+/*   x = x_{t}
+/*  xp = x_{t-1} */
+/* sig = \sigma^{2} */
+/* mu = \mu_{t-1} */
+
+
+load("yang.rr")$
+load("nk_restriction.rr")$
+load("os_muldif.rr")$
+load("util.rr")$
+load("common.rr")$
+
+def make_poly(Coefs, Var) {
+  Res = 0;
+  N = length(Coefs);
+  L = Coefs;
+  for (I = 0; I < N; I++) {
+    E = car(L);
+    Res += E * Var^I;
+    L = cdr(L);
+  }
+  return Res;
+}
+
+def gen_ann_st(Coefs_C, Coefs_D) {
+  /* Vars: [x, xp] */
+  S = make_poly(Coefs_C, xp);
+  T = make_poly(Coefs_D, xp);
+  DS = diff(S, xp);
+  DT = diff(T, xp);
+  D = x - S;
+
+  L1 = T*dx + D;
+  L2 = 2*T^2*dxp - DT*D^2 - 2*DS*T*D + DT*T;
+
+  return [L1, L2];
+}
+
+
+
+def gen_ann_ob(L, Var_ob) {
+  /* Vars: [x, y] */
+  L1 = dy + (y - L*x)/Var_ob;
+  L2 = dx - L*(y - L*x)/Var_ob;
+  return [L1, L2];
+}
+
+
+def gen_ann_pred(Igauss, Ist) {
+  Vars = [xp, x, mu, sig];
+  DVars = [dxp, dx, dmu, dsig];
+
+  Itmp1 = append(Igauss, [dx]);
+  Itmp2 = append(Ist, [dmu, dsig]);
+
+  Itmp = nk_restriction.ann_mul(Itmp1, Itmp2, Vars, DVars);
+  Ipred = nk_restriction.integration_ideal(Itmp, Vars, DVars, [1, 0, 0, 0]);
+  return Ipred;
+}
+
+def gen_ann_pred_ob(Ipred, Iob) {
+  Vars = [x, mu, sig, y];
+  DVars = [dx, dmu, dsig, dy];
+
+  Itmp1 = append(Ipred, [dy]);
+  Itmp2 = append(Iob, [dmu, dsig]);
+
+  I = nk_restriction.ann_mul(Itmp1, Itmp2, Vars, DVars);
+  return I;
+}
+
+def gr_test(I, Vars) {
+  /* e.g.) Vars = [x, y] -> V = [x, y, dx, dy] */
+  V = append(Vars, map(util.dvar, Vars));
+  N = length(Vars);
+  Gr = nd_weyl_gr(I, V, 0, poly_r_omatrix(N));
+  return Gr;
+}
+
+def stdmon_test(I, Vars) {
+  Gr = gr_test(I, Vars);  
+  yang.define_ring(["partial", Vars]);
+  Sm = yang.stdmon(Gr);
+  return Sm;
+}
+
+Coef_C = [1, 1]$
+Coef_D = [1, 1, 1]$
+print(["C", Coef_C])$
+print(["D", Coef_D])$
+
+Ist = gen_ann_st(Coef_C, Coef_D)$
+Igauss = common.gen_ann_gauss()$
+Iob = gen_ann_ob(1, 1)$
+
+T0 = time()$
+Ipred = gen_ann_pred(Igauss, Ist);
+
+print("gr_test call...")$
+T0 = time()$
+gr_test(Ipred, [x, mu, sig]);
+T1 = time()$
+print([["CPU time", T1[0] - T0[0]], ["GC time", T1[1] - T0[1]]])$
+
+print("Imul0")$
+Imul0 = gen_ann_pred_ob(Ipred, Iob)$
+print("Imul1")$
+Imul1 = util.ann_mul([dx^2, x*dx - 1], Imul0, [x], [x, mu, sig, y])$
+print("Imul2")$
+Imul2 = util.ann_mul([dx^3, x^2*dx^2 - 2, x*dx - 2], Imul0, [x], [x, mu, sig, y])$
+
+print("I0")$
+I0 = nk_restriction.integration_ideal(Imul0, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0])$
+print("I1")$
+I1 = nk_restriction.integration_ideal(Imul1, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0])$
+print("I2")$
+I2 = nk_restriction.integration_ideal(Imul2, [x, mu, sig, y], [dx, dmu, dsig, dy], [1, 0, 0, 0])$
+T1 = time()$
+
+/* print computation time*/
+print([["CPU time", T1[0] - T0[0]], ["GC time", T1[1] - T0[1]]])$*/
+
+T0 = time()$
+print("I0 gr")$
+Gr0 = gr_test(I0, [y, mu, sig])$
+print("I1 gr")$
+Gr1 = gr_test(I1, [y, mu, sig])$
+print("I2 gr")$
+Gr2 = gr_test(I2, [y, mu, sig])$
+T1 = time()$
+print([["CPU time", T1[0] - T0[0]], ["GC time", T1[1] - T0[1]]])$
+
+yang.define_ring(["partial", [y, mu, sig]]);
+yang.stdmon(Gr0);
+yang.stdmon(Gr1);
+yang.stdmon(Gr2);
+
+end$
