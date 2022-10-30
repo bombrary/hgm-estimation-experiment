@@ -1,7 +1,7 @@
 import numpy as np
-from .models.ou_iori import Model, realize, hgm, naive, phi
+from .models.ou_iori import Model, realize, hgm, naive, phi, ukf, ekf, particle
 from .models.ou_iori.phi import v_phi
-from .models.ou_iori import pfaffian_gamma1on20_sigma1_varob5 as pf
+from .models.ou_iori import pfaffian_gamma1on20_sigma1_varob1 as pf
 from matplotlib import pyplot as plt
 
 
@@ -16,6 +16,7 @@ def v_phis0_cache(phi, z0):
         return res
 
 
+# CAUTION: this coefficient is used by ONLY pfaffian_gamma1on20_sigma1_varob1.
 def fact_vphi1(y, mu, sig):
     c0 = 94302
     c1 = 99179
@@ -56,8 +57,11 @@ def fun_z0_vphi02(phi, z1):
 
 def plot_realization(ax: plt.Axes):
     ax.plot(ts, xs)
-    ax.plot(ts[y_steps], ys, label="observation")
+    # ax.plot(ts[y_steps], ys, label="observation")
     ax.plot(ts[y_steps], result_naive[0], label='naive')
+    ax.plot(ts[y_steps], result_ukf[0], label='ukf')
+    ax.plot(ts[y_steps], result_ekf[0], label='ekf')
+    ax.plot(ts[y_steps], result_particle[0], label='particle')
     ax.plot(ts[y_steps], result_hgm[0], label='hgm')
     ax.set_xlabel("t")
     ax.set_ylabel("value")
@@ -71,8 +75,8 @@ if __name__ == '__main__':
     model = Model(gamma, sigma, var_ob)
 
     x0 = 10.0
-    ts, xs, ys, y_steps = realize(x0, 5000, model=model)
-    print(f'ys: {ys}')
+
+    ts, xs, ys, y_steps = realize(x0, 1000, model=model, dt=0.1)
 
     mu0 = 10.0
     sig0 = 1.0
@@ -85,6 +89,11 @@ if __name__ == '__main__':
                               pfs_phi2=pf.phi2)
 
     result_naive = naive.estimate(mu0, sig0, ys, model)
+    result_ukf = ukf.estimate(mu0, sig0, ys, 0.1, model)
+    result_ekf = ekf.estimate(mu0, sig0, ys, model)
+
+    xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=1000)
+    result_particle = particle.estimate(ys, xxs, model)
 
     fig = plt.figure()
     ax = fig.add_subplot()

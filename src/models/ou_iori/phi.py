@@ -5,6 +5,11 @@ from . import Model
 from multiprocessing import Pool
 from numpy.typing import NDArray
 
+def quad_inf(func, args):
+    return integrate.quad(func,
+                          -np.inf, np.inf,
+                          args)[0]
+
 def p_st(x, xp, model: Model):
     return float(stats.norm.pdf(x, loc=model.k*xp, scale=np.sqrt(model.var_st)))
 
@@ -15,14 +20,14 @@ def p_ob(x, y, model: Model):
 
 def p_postprev(xp, mu, sig):
     # NOTE: Here sig is a variance, not a std.
-    return float(stats.norm.pdf(xp, loc=mu, scale=sig))
+    return float(stats.norm.pdf(xp, loc=mu, scale=np.sqrt(sig)))
 
 
 def p_pred(x, mu, sig, model):
     # Compute "∫ p_st * p_posrprev dx"
     # In this model, it can be computed analytically
     loc = model.k * mu
-    scale = np.sqrt(sig*model.k**2 + 1**2) # NOTE: scale is std, not variance.
+    scale = np.sqrt(sig*model.k**2 + model.var_st) # NOTE: scale is std, not variance.
     return float(stats.norm.pdf(x, loc=loc, scale=scale))
 
 
@@ -37,11 +42,6 @@ def p_join1(x, y, mu, sig, model):
 def p_join2(x, y, mu, sig, model):
     return x * x * p_join0(x, y, mu, sig, model)
 
-
-def quad_inf(func, args):
-    return integrate.quad(func,
-                          -np.inf, np.inf,
-                          args)[0]
 
 def phi0(y, mu, sig, model):
     return quad_inf(p_join0, (y, mu, sig, model))
