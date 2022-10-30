@@ -16,6 +16,7 @@ let
     (python-package-hgm p)
     cython
     scikitlearn
+    icecream
   ]);
 in
 pkgs.mkShell {
