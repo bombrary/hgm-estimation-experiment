@@ -56,13 +56,13 @@ def fun_z0_vphi02(phi, z1):
 
 
 def plot_realization(ax: plt.Axes):
-    ax.plot(ts, xs)
+    ax.plot(ts, xs, color='gray', label="state")
     # ax.plot(ts[y_steps], ys, label="observation")
     ax.plot(ts[y_steps], result_naive[0], label='naive')
-    ax.plot(ts[y_steps], result_ukf[0], label='ukf')
-    ax.plot(ts[y_steps], result_ekf[0], label='ekf')
-    ax.plot(ts[y_steps], result_particle[0], label='particle')
-    ax.plot(ts[y_steps], result_hgm[0], label='hgm')
+    # ax.plot(ts[y_steps], result_ukf[0], label='ukf', color='forestgreen')
+    ax.plot(ts[y_steps], result_ekf[0], label='ekf', color='darkblue')
+    ax.plot(ts[y_steps], result_particle[0], label='particle', color='forestgreen')
+    ax.plot(ts[y_steps], result_hgm[0], label='hgm', color='red')
     ax.set_xlabel("t")
     ax.set_ylabel("value")
     ax.legend()
@@ -87,13 +87,13 @@ if __name__ == '__main__':
                               pfs_phi0=pf.phi0,
                               pfs_phi1=pf.phi1,
                               pfs_phi2=pf.phi2)
+    xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=500)
+    result_particle = particle.estimate(ys, xxs, model)
 
     result_naive = naive.estimate(mu0, sig0, ys, model)
-    result_ukf = ukf.estimate(mu0, sig0, ys, 0.1, model)
+    # result_ukf = ukf.estimate(mu0, sig0, ys, 0.1, model)
     result_ekf = ekf.estimate(mu0, sig0, ys, model)
 
-    xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=1000)
-    result_particle = particle.estimate(ys, xxs, model)
 
     fig = plt.figure()
     ax = fig.add_subplot()
