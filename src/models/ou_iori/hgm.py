@@ -6,14 +6,14 @@ def estimate(mu0, sig0, ys, *,
              fun_z0_vphi0,
              fun_z0_vphi1,
              fun_z0_vphi2,
-             pfs_phi0, pfs_phi1, pfs_phi2, log=False):
+             pfs_phi0, pfs_phi1, pfs_phi2, log=False, disable_tqdm=False):
     mu = mu0
     sig = sig0
 
     mus = []
     sigs = []
 
-    for y in tqdm(ys):
+    for y in tqdm(ys, disable=disable_tqdm):
         z1 = np.array([y, mu, sig])
 
         z00, v_phi00 = fun_z0_vphi0(z1)
