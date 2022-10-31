@@ -4,6 +4,8 @@ from .models.ou_iori.phi import v_phi
 from .models.ou_iori import pfaffian_gamma1on20_sigma1_varob1 as pf
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+from scipy import stats
+from multiprocessing import Pool
 
 MAX_RETRY = 10
 
@@ -71,15 +73,15 @@ def fun_z0_vphi02(phi, z1):
     return z0, v_phis0_cache(phi, z0)
 
 
-def try_estimation(model):
+def try_estimation(model, iter_max, dt):
     x0 = 10.0
     mu0 = 10.0
     sig0 = 1.0
 
     for i in range(MAX_RETRY):
-        print(f'retry: {i}')
+        # tqdm.write(f'retry: {i}')
         try:
-            ts, xs, ys, y_steps = realize(x0, 1000, model=model, dt=0.1)
+            _, xs, ys, y_steps = realize(x0, iter_max, model=model, dt=dt)
 
             result_hgm = hgm.estimate(mu0, sig0, ys,
                                       fun_z0_vphi0=lambda z1: fun_z0_vphi02(phi.phi0, z1),
@@ -87,18 +89,25 @@ def try_estimation(model):
                                       fun_z0_vphi2=lambda z1: fun_z0_vphi02(phi.phi2, z1),
                                       pfs_phi0=pf.phi0,
                                       pfs_phi1=pf.phi1,
-                                      pfs_phi2=pf.phi2, log=False)
+                                      pfs_phi2=pf.phi2, log=False, disable_tqdm=True)
         except ZeroDivisionError:
-            print("retry")
+            pass
         else:
-            # xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=1000)
-            # result_particle = particle.estimate(ys, xxs, model)
-            return result_hgm#, result_particle
+            xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=30)
+            result_particle = particle.estimate(ys, xxs, model, disable_tqdm=True)
+
+            mus_hgm = np.array(result_hgm[0], dtype=np.float64)
+            mus_particle = np.array(result_particle[0], dtype=np.float64)
+            return np.abs(mus_hgm-xs[y_steps]), np.abs(mus_particle-xs[y_steps])
 
     raise Exception('Retry Count Exceeded')
 
 
-    
+def plot(ax: plt.Axes, plot_t, err_hgm, err_particle):
+    ax.plot(plot_t, err_hgm, label='hgm')
+    ax.plot(plot_t, err_particle, label='particle')
+    ax.legend()
+
 
 if __name__ == '__main__':
     gamma = 1/20
@@ -106,6 +115,25 @@ if __name__ == '__main__':
     var_ob = 1
     model = Model(gamma, sigma, var_ob)
 
+    iter_max = 1000
+    dt = 0.1
+    x0 = 10.0
+    ts, _, _, y_steps = realize(x0, iter_max, model=model, dt=dt)
 
-    for _ in tqdm(range(100)):
-        try_estimation(model)
+    def func(_):
+        return try_estimation(model, iter_max, dt)
+
+    with Pool(processes=15) as p:
+        N = 100
+        imap = p.imap_unordered(func, range(N))
+        result = list(tqdm(imap, total=N))
+    
+    result = np.array(result)
+    err_hgm = stats.trim_mean(result[:,0,:], 0.1, axis=0)
+    err_particle = stats.trim_mean(result[:,1,:], 0.1, axis=0)
+
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    plot(ax, ts[y_steps], err_hgm, err_particle)
+    plt.show()
+
