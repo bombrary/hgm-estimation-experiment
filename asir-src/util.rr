@@ -155,12 +155,17 @@ def map_vec(Fun, Vec) {
 }
 
 def map_pfs(Fun, Pfs) {
-  Len = length(Pfs);
-  Res = vector(Len);
-  for (I = 0; I < Len; I++) {
-    Res[I] = map_vec(Func, Pfs[I]);
+  M = length(Pfs);
+  Row = vector(M);
+  for (I = 0; I < M; I++) {
+    N = length(Pfs[I]);
+    Col = vector(N);
+    for (J = 0; J < N; J++) {
+      Col[J] = map_mat(Fun, Pfs[I][J]);
+    }
+    Row[I] = Col;
   }
-  return Res;
+  return Row;
 }
 
 def pf_as_python_func(Fname, Pfs) {
