@@ -8,7 +8,7 @@ localf save_Pfs_as_python, save_Pfs_as_cython;
 localf lcm_of_denoms, lcm_of_denoms_pfs;
 localf repeat, is_holonomic;
 localf p_map_coef, rat_map_coef, deval_pf_coefs;
-localf get_denoms, get_denoms_pfs;
+localf map_pfs, map_vec, map_mat;
 
 
 /*  From Iori's code */
@@ -133,20 +133,34 @@ def gen_obs_eq(OE) {
   return append(Iy_x, Ix_y);
 }
 
-def get_denoms_pfs(Pfs) {
-  return map(get_denoms, Pfs);
-}
 
-def map_pf(fun, Pf) {
-  Res = vector(length(Pf));
-  for (I = 0; I < length(Res); I++) {
-    Res[I] = map(fun, Pf[I]);
+def map_mat(Fun, Mat) {
+  Size = size(Mat);
+  Res = matrix(Size[0], Size[1]);
+  for (I = 0; I < Size[0]; I++) {
+    for (J = 0; J < Size[1]; J++) {
+      Res[I][J] = Fun(Mat[I][J]);
+    }
   }
   return Res;
 }
 
-def map_pfs(fun, Pfs) {
-  return map(map_pfs, Pfs)
+def map_vec(Fun, Vec) {
+  Len = length(Vec);
+  Res = vector(Len);
+  for (I = 0; I < Len; I++) {
+    Res[I] = Fun(Vec[I]);
+  }
+  return Res;
+}
+
+def map_pfs(Fun, Pfs) {
+  Len = length(Pfs);
+  Res = vector(Len);
+  for (I = 0; I < Len; I++) {
+    Res[I] = map_vec(Func, Pfs[I]);
+  }
+  return Res;
 }
 
 def pf_as_python_func(Fname, Pfs) {
