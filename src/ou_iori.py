@@ -72,7 +72,7 @@ def fun_z0_vphi02(phi, z1):
 def plot_realization(ax: plt.Axes):
     ax.plot(ts, xs, color='gray', label="state")
     # ax.plot(ts[y_steps], ys, label="observation")
-    ax.plot(ts[y_steps], result_naive[0], label='naive')
+    # ax.plot(ts[y_steps], result_naive[0], label='naive')
     # ax.plot(ts[y_steps], result_ukf[0], label='ukf', color='forestgreen')
     ax.plot(ts[y_steps], result_ekf[0], label='ekf', color='darkblue')
     ax.plot(ts[y_steps], result_particle[0], label='particle', color='forestgreen')
@@ -103,10 +103,10 @@ if __name__ == '__main__':
                               pfs_phi1=pf.phi1,
                               pfs_phi2=pf.phi2)
 
-    xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=30)
+    xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=100)
     result_particle = particle.estimate(ys, xxs, model)
 
-    result_naive = naive.estimate(mu0, sig0, ys, model)
+    # result_naive = naive.estimate(mu0, sig0, ys, model)
     # result_ukf = ukf.estimate(mu0, sig0, ys, 0.1, model)
     result_ekf = ekf.estimate(mu0, sig0, ys, model)
 
