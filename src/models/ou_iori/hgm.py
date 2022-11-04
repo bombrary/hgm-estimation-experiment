@@ -12,6 +12,9 @@ def estimate(mu0, sig0, ys, *,
              event_phi0 = None,
              event_phi1 = None,
              event_phi2 = None,
+             rtol_phi0=1e-4,
+             rtol_phi1=1e-4,
+             rtol_phi2=1e-4,
              log=False,
              disable_tqdm=False):
     mu = mu0
@@ -42,9 +45,9 @@ def estimate(mu0, sig0, ys, *,
 
         if log:
             tqdm.write(f'{list(z00)}, {list(z10)}, {list(z20)} -> {list(z1)}')
-        r0 = hgm.solve(z00, z1, v_phi00, lambda zs: pfs_phi0(zs), events=event_phi0)
-        r1 = hgm.solve(z10, z1, v_phi10, lambda zs: pfs_phi1(zs), events=event_phi1)
-        r2 = hgm.solve(z20, z1, v_phi20, lambda zs: pfs_phi2(zs), events=event_phi2)
+        r0 = hgm.solve(z00, z1, v_phi00, lambda zs: pfs_phi0(zs), events=event_phi0, rtol=rtol_phi0)
+        r1 = hgm.solve(z10, z1, v_phi10, lambda zs: pfs_phi1(zs), events=event_phi1, rtol=rtol_phi1)
+        r2 = hgm.solve(z20, z1, v_phi20, lambda zs: pfs_phi2(zs), events=event_phi2, rtol=rtol_phi2)
 
         v_phi0 = r0.y[:, -1]
         v_phi1 = r1.y[:, -1]
