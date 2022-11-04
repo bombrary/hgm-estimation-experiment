@@ -89,11 +89,16 @@ def try_estimation(model, iter_max, dt):
                                       fun_z0_vphi2=lambda z1: fun_z0_vphi02(phi.phi2, z1),
                                       pfs_phi0=pf.phi0,
                                       pfs_phi1=pf.phi1,
-                                      pfs_phi2=pf.phi2, log=False, disable_tqdm=True)
+                                      pfs_phi2=pf.phi2,
+                                      rtol_phi0=1e-3,
+                                      rtol_phi1=1e-3,
+                                      rtol_phi2=1e-5,
+                                      log=False,
+                                      disable_tqdm=True)
         except ZeroDivisionError:
             pass
         else:
-            xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=30)
+            xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=100)
             result_particle = particle.estimate(ys, xxs, model, disable_tqdm=True)
 
             mus_hgm = np.array(result_hgm[0], dtype=np.float64)
@@ -123,8 +128,8 @@ if __name__ == '__main__':
     def func(_):
         return try_estimation(model, iter_max, dt)
 
-    with Pool(processes=15) as p:
-        N = 100
+    with Pool(processes=20) as p:
+        N = 1000
         imap = p.imap_unordered(func, range(N))
         result = list(tqdm(imap, total=N))
     

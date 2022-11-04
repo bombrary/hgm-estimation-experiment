@@ -101,7 +101,10 @@ if __name__ == '__main__':
                               fun_z0_vphi2=lambda z1: fun_z0_vphi02(phi.phi2, z1),
                               pfs_phi0=pf.phi0,
                               pfs_phi1=pf.phi1,
-                              pfs_phi2=pf.phi2)
+                              pfs_phi2=pf.phi2,
+                              rtol_phi0=1e-3,
+                              rtol_phi1=1e-3,
+                              rtol_phi2=1e-5)
 
     xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=100)
     result_particle = particle.estimate(ys, xxs, model)
