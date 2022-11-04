@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     x0 = 10.0
 
-    ts, xs, ys, y_steps = realize(x0, 1000, model=model, dt=0.1)
+    ts, xs, ys, y_steps = realize(x0, 10000, model=model, dt=0.01)
 
     mu0 = 10.0
     sig0 = 1.0
@@ -120,3 +120,11 @@ if __name__ == '__main__':
     plot_realization(ax)
 
     plt.show()
+
+
+def save_data():
+   data_state = np.array([ts, xs])
+   data_estimate = np.array([ts[y_steps], ys, result_hgm[0], result_particle[0], result_ekf[0]])
+
+   np.savetxt("ou-iori_t_x.csv", data_state.T, header="t, x", comments="", delimiter=",", fmt="%.8f")
+   np.savetxt("ou-iori_t_y_estimates.csv", data_estimate.T, header="t, y, hgm, particle, efk", comments="", delimiter=",", fmt="%.8f")
