@@ -98,7 +98,7 @@ def try_estimation(model, iter_max, dt):
         except ZeroDivisionError:
             pass
         else:
-            xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=100)
+            xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=40)
             result_particle = particle.estimate(ys, xxs, model, disable_tqdm=True)
 
             mus_hgm = np.array(result_hgm[0], dtype=np.float64)
@@ -120,8 +120,9 @@ if __name__ == '__main__':
     var_ob = 1
     model = Model(gamma, sigma, var_ob)
 
-    iter_max = 1000
-    dt = 0.1
+    # end time is calculated by dt*iter_max
+    iter_max = 10000
+    dt = 0.01
     x0 = 10.0
     ts, _, _, y_steps = realize(x0, iter_max, model=model, dt=dt)
 
@@ -129,9 +130,9 @@ if __name__ == '__main__':
         return try_estimation(model, iter_max, dt)
 
     with Pool(processes=20) as p:
-        N = 1000
-        imap = p.imap_unordered(func, range(N))
-        result = list(tqdm(imap, total=N))
+        sampling_num = 1000
+        imap = p.imap_unordered(func, range(sampling_num))
+        result = list(tqdm(imap, total=sampling_num))
     
     result = np.array(result)
     err_hgm = stats.trim_mean(result[:,0,:], 0.1, axis=0)
@@ -142,3 +143,7 @@ if __name__ == '__main__':
     plot(ax, ts[y_steps], err_hgm, err_particle)
     plt.show()
 
+
+def save_data(path):
+   data = np.array([ts[y_steps], err_hgm, err_particle])
+   np.savetxt(path, data.T, header="t,err_hgm,err_particle", comments="", delimiter=",", fmt="%.8f")
