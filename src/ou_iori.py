@@ -106,7 +106,7 @@ if __name__ == '__main__':
                               rtol_phi1=1e-3,
                               rtol_phi2=1e-5)
 
-    xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=100)
+    xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=40)
     result_particle = particle.estimate(ys, xxs, model)
 
     # result_naive = naive.estimate(mu0, sig0, ys, model)
