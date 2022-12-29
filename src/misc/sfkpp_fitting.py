@@ -77,26 +77,28 @@ mean_model_2d = fitting_nth_order(x, means, 2, False, 0)
 
 var_model_2d = fitting_nth_order(x, vars, 2, False, 0)
 var_model_3d = fitting_nth_order(x, vars, 3, False, 0)
-var_model_3d_lasso = fitting_nth_order(x, vars, 3, False, 1e-4)
+# var_model_3d_lasso = fitting_nth_order(x, vars, 3, False, 1e-4)
 var_model_4d = fitting_nth_order(x, vars, 4, False, 0)
-var_model_4d_lasso = fitting_nth_order(x, vars, 4, False, 1e-4)
+# var_model_4d_lasso = fitting_nth_order(x, vars, 4, False, 1e-4)
 
 print(f'     mean(1d): {mean_model_1d.coef_}')
 print(f'     mean(2d): {mean_model_2d.coef_}')
 print(f'      var(2d): {var_model_2d.coef_}')
 print(f'      var(3d): {var_model_3d.coef_}')
-print(f'var(3d Lasso): {var_model_3d_lasso.coef_}')
+# print(f'var(3d Lasso): {var_model_3d_lasso.coef_}')
 print(f'      var(4d): {var_model_4d.coef_}')
-print(f'var(4d Lasso): {var_model_4d_lasso.coef_}')
+# print(f'var(4d Lasso): {var_model_4d_lasso.coef_}')
 
-fig: plt.Figure = plt.figure()
-fig.subplots_adjust(left=0.05, bottom=0.07, right=0.99, top=0.95, wspace=0.24, hspace=0.23)
+figsize = (4, 3)
+dpi = 100
+fig: plt.Figure = plt.figure(figsize=figsize, dpi=dpi)
+fig.subplots_adjust(left=0.155, bottom=0.15, right=0.99, top=0.975, wspace=0.24, hspace=0.23)
 ax_mean = fig.add_subplot()
 
 def setup_mean(ax: plt.Axes):
     ax.set_xlabel("x")
     ax.set_ylabel("S(x)")
-    ax.set_title("mean data of sFKPP process")
+    #ax.set_title("mean data of sFKPP process")
 
     ax.scatter(x, moments[:, 0], c="lightgray", label="data")
 
@@ -107,22 +109,21 @@ def setup_mean(ax: plt.Axes):
 
 setup_mean(ax_mean)
 
-fig: plt.Figure = plt.figure()
-fig.subplots_adjust(left=0.05, bottom=0.07, right=0.99, top=0.95, wspace=0.24, hspace=0.23)
+fig: plt.Figure = plt.figure(figsize=figsize, dpi=dpi)
+fig.subplots_adjust(left=0.155, bottom=0.15, right=0.99, top=0.975, wspace=0.24, hspace=0.23)
 ax_var = fig.add_subplot()
 
 def setup_var(ax: plt.Axes):
     ax.set_xlabel("x")
     ax.set_ylabel("T(x)")
-    ax.set_title("var data of sFKPP process")
     ax.scatter(x, moments[:, 1] - np.square(moments[:, 0]), c="lightgray", label="data")
-    ax.set_title("variance fitting")
+    #ax.set_title("var data of sFKPP process")
 
     plot_var(ax, var_model_2d, "2nd order")
     plot_var(ax, var_model_3d, "3rd order")
-    plot_var(ax, var_model_3d_lasso, "3rd order (LASSO)")
+    # plot_var(ax, var_model_3d_lasso, "3rd order (LASSO)")
     plot_var(ax, var_model_4d, "4th order")
-    plot_var(ax, var_model_4d_lasso, "4th order (LASSO)")
+    # plot_var(ax, var_model_4d_lasso, "4th order (LASSO)")
 
     ax.legend()
 
