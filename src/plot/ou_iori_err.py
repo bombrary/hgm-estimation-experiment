@@ -12,16 +12,16 @@ class Result:
     particle: NDArray[np.float64]
 
 
-with open('data/ou-iori_t_abserrs_N1000_rtol1e-31e-31e-5_particle100.csv') as f:
+with open('data/ou-iori_t_abserrs_N1000_rtol1e-31e-31e-5_particle40.csv') as f:
     result_err = feed_csv(f)
 
 
 print(result_err.keys())
 
 
-result = Result(result_err['ts'],
-                result_err['hgm'],
-                result_err['particle'])
+result = Result(result_err['t'],
+                result_err['err_hgm'],
+                result_err['err_particle'])
 
 
 def plot(ax: plt.Axes):
