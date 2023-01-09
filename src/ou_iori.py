@@ -132,5 +132,5 @@ def save_data():
    data_state = np.array([ts, xs])
    data_estimate = np.array([ts[y_steps], ys, result_hgm[0], result_particle40[0], result_particle400[0], result_ekf[0]])
 
-   np.savetxt("ou-iori_t_x.csv", data_state.T, header="t, x", comments="", delimiter=",", fmt="%.8f")
-   np.savetxt("ou-iori_t_y_estimates.csv", data_estimate.T, header="t, y, hgm, particle40, particle1000, efk", comments="", delimiter=",", fmt="%.8f")
+   np.savetxt("ou-iori_t_x.csv", data_state.T, header="t,x", comments="", delimiter=",", fmt="%.8f")
+   np.savetxt("ou-iori_t_y_estimates.csv", data_estimate.T, header="t,y,hgm,particle40,particle400,ekf", comments="", delimiter=",", fmt="%.8f")
