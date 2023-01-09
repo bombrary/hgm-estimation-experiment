@@ -11,7 +11,8 @@ class Result:
     x: NDArray[np.float64] 
     t_disc: NDArray[np.float64] 
     hgm: NDArray[np.float64] 
-    particle: NDArray[np.float64] 
+    particle40: NDArray[np.float64] 
+    particle400: NDArray[np.float64] 
     ekf: NDArray[np.float64] 
 
 
@@ -31,14 +32,16 @@ result = Result(result_state['t'],
                 result_state['x'],
                 result_estimate['t'],
                 result_estimate['hgm'],
-                result_estimate['particle'],
+                result_estimate['particle40'],
+                result_estimate['particle400'],
                 result_estimate['ekf'])
 
 
 def plot(ax: plt.Axes):
     ax.plot(result.t, result.x, label="state", c='lightgray')
     ax.plot(result.t_disc, result.ekf, label='EKF', c='steelblue')
-    ax.plot(result.t_disc, result.particle, label='Particle', c='forestgreen')
+    ax.plot(result.t_disc, result.particle40, label='Particle 40', c='forestgreen')
+    ax.plot(result.t_disc, result.particle400, label='Particle 400', c='lime')
     ax.plot(result.t_disc, result.hgm, label='Proposed', c='red')
     ax.set_xlabel('time')
     ax.set_ylabel('value')
