@@ -5,6 +5,8 @@ from .models.ou_iori import pfaffian_gamma1on20_sigma1_varob1 as pf
 from matplotlib import pyplot as plt
 import time
 
+np.random.seed(0)
+
 
 cache = {'phi0': {
             '[0.1, 0.1, 0.01]': np.array([-0.00563109, -0.00298776, 0.02750941, 0.00460847, 0.01560604, -0.01132219, 0.29803653]),
@@ -75,7 +77,8 @@ def plot_realization(ax: plt.Axes):
     # ax.plot(ts[y_steps], result_naive[0], label='naive')
     # ax.plot(ts[y_steps], result_ukf[0], label='ukf', color='forestgreen')
     ax.plot(ts[y_steps], result_ekf[0], label='ekf', color='darkblue')
-    ax.plot(ts[y_steps], result_particle[0], label='particle', color='forestgreen')
+    ax.plot(ts[y_steps], result_particle40[0], label='particle 40', color='forestgreen')
+    ax.plot(ts[y_steps], result_particle400[0], label='particle 400', color='lightgreen')
     ax.plot(ts[y_steps], result_hgm[0], label='hgm', color='red')
     ax.set_xlabel("t")
     ax.set_ylabel("value")
@@ -106,8 +109,11 @@ if __name__ == '__main__':
                               rtol_phi1=1e-3,
                               rtol_phi2=1e-5)
 
-    xxs = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=40)
-    result_particle = particle.estimate(ys, xxs, model)
+    xxs40 = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=40)
+    result_particle40 = particle.estimate(ys, xxs40, model)
+
+    xxs400 = np.random.normal(loc=mu0, scale=np.sqrt(sig0), size=400)
+    result_particle400 = particle.estimate(ys, xxs400, model)
 
     # result_naive = naive.estimate(mu0, sig0, ys, model)
     # result_ukf = ukf.estimate(mu0, sig0, ys, 0.1, model)
@@ -124,7 +130,7 @@ if __name__ == '__main__':
 
 def save_data():
    data_state = np.array([ts, xs])
-   data_estimate = np.array([ts[y_steps], ys, result_hgm[0], result_particle[0], result_ekf[0]])
+   data_estimate = np.array([ts[y_steps], ys, result_hgm[0], result_particle40[0], result_particle400[0], result_ekf[0]])
 
    np.savetxt("ou-iori_t_x.csv", data_state.T, header="t, x", comments="", delimiter=",", fmt="%.8f")
-   np.savetxt("ou-iori_t_y_estimates.csv", data_estimate.T, header="t, y, hgm, particle, efk", comments="", delimiter=",", fmt="%.8f")
+   np.savetxt("ou-iori_t_y_estimates.csv", data_estimate.T, header="t, y, hgm, particle40, particle1000, efk", comments="", delimiter=",", fmt="%.8f")
